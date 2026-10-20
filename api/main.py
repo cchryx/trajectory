@@ -19,6 +19,7 @@ from trajectory import embed
 from trajectory.course_search import MODES, course_detail, search
 from trajectory.db import database_url
 from trajectory.matching import ResumeError, match, pdf_text
+from trajectory.terms import realistic_terms
 
 MAX_UPLOAD = 2 * 1024 * 1024  # 2 MB
 MAX_TEXT = 20_000  # characters of pasted resume text
@@ -81,7 +82,7 @@ def filters():
     """Values for the filter menus on the site."""
     with pool.connection() as conn, conn.cursor() as cur:
         cur.execute("select distinct unnest(terms) from postings where active order by 1")
-        terms = [r[0] for r in cur.fetchall()]
+        terms = realistic_terms(r[0] for r in cur.fetchall())
         cur.execute("select distinct category from postings where active and category is not null order by 1")
         categories = [r[0] for r in cur.fetchall()]
         cur.execute("select count(*), count(description) from postings where active")

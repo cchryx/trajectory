@@ -3,6 +3,7 @@ from pathlib import Path
 from loaders.schools.uoft import CALENDARS, calendar_year, last_page, parse_page, split_breadth
 from trajectory.prereqs import codes, parse, to_groups
 from trajectory.skills import find_skills
+from trajectory.terms import realistic_terms
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uoft_csc_page.html"
 
@@ -127,4 +128,14 @@ def test_breadth_names_with_commas():
     text = "Thought, Belief and Behaviour (2), Society and its Institutions (3)"
     assert split_breadth(text) == ["Thought, Belief and Behaviour (2)", "Society and its Institutions (3)"]
     assert split_breadth("Arts, Literature and Language") == ["Arts, Literature and Language"]
+
+
+# Terms ---------------------------------------------------------------------------
+
+
+def test_realistic_terms():
+    from datetime import date
+
+    terms = ["N/A", "Spring 2016", "Summer 2026", "Fall 2026", "Winter 2027", "Summer 2027", "Fall 2029", "Fall 2026"]
+    assert realistic_terms(terms, date(2026, 10, 20)) == ["Fall 2026", "Winter 2027", "Summer 2027"]
 
