@@ -67,9 +67,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           >
             SimplifyJobs internship list
           </a>
-          . Every job links to its original posting. Course data from the{" "}
-          <a className="underline" href="https://artsci.calendar.utoronto.ca">
-            UofT Arts &amp; Science calendar
+          . Every job links to its original posting. Course data from each
+          university&apos;s public course calendar. Trajectory is{" "}
+          <a className="underline" href="https://github.com/cchryx/trajectory">
+            open source
           </a>
           .
         </footer>

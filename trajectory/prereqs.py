@@ -13,26 +13,31 @@ to_groups() flattens the tree into "and" of "or" groups for the prereqs table:
 """
 
 import re
+from functools import cache
 from itertools import product
 
-# UofT style codes: CSC148H1, MAT137Y1, CSCA48H3 (UTSC), CSC207H5 (UTM).
-CODE = re.compile(r"[A-Z]{3}[A-Z0-9]\d{2}[HY]\d")
-_TOKEN = re.compile(
-    r"(?P<code>[A-Z]{3}[A-Z0-9]\d{2}[HY]\d)"
-    r"|(?P<open>[(\[])|(?P<close>[)\]])"
-    r"|(?P<or>/|\bor\b)|(?P<and>[,;]|\band\b)",
-    re.IGNORECASE,
-)
+from trajectory.codes import DEFAULT_SCHOOL, normalize, pattern
+
 MAX_GROUPS = 64
 
 
-def _tokens(text):
+@cache
+def _token_re(school_id):
+    return re.compile(
+        rf"(?P<code>{pattern(school_id)})"
+        r"|(?P<open>[(\[])|(?P<close>[)\]])"
+        r"|(?P<or>/|\bor\b)|(?P<and>[,;]|\band\b)",
+        re.IGNORECASE,
+    )
+
+
+def _tokens(text, school_id=DEFAULT_SCHOOL):
     text = (text or "").replace("​", "")
     out = []
-    for m in _TOKEN.finditer(text):
+    for m in _token_re(school_id).finditer(text):
         kind = m.lastgroup
         if kind == "code":
-            out.append(("code", m.group().upper()))
+            out.append(("code", normalize(m.group())))
         else:
             out.append((kind, None))
     return out
@@ -92,9 +97,9 @@ class _Parser:
         return None  # a separator or the end: nothing here
 
 
-def parse(text):
+def parse(text, school_id=DEFAULT_SCHOOL):
     """Parse prerequisite text into a tree. Returns None when it names no courses."""
-    p = _Parser(_tokens(text))
+    p = _Parser(_tokens(text, school_id))
     parts = []
     while p.peek() is not None:
         parts.append(p.all_of())
