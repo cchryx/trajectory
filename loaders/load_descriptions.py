@@ -4,15 +4,11 @@ Only looks at open postings with no description yet.
 Fetches each company's board once and matches jobs by ID.
 """
 
-import os
-import sys
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
-import psycopg
-from dotenv import load_dotenv
-
-from descriptions import fetch_ashby, fetch_greenhouse, fetch_lever, parse_board
+from loaders.descriptions import fetch_ashby, fetch_greenhouse, fetch_lever, parse_board
+from trajectory.db import connect
 
 FETCHERS = {"greenhouse": fetch_greenhouse, "lever": fetch_lever, "ashby": fetch_ashby}
 
@@ -33,22 +29,17 @@ where id = %(id)s
 
 
 def fetch_board(key):
-    """Fetch one company's jobs. Returns (key, jobs). Errors give an empty dict."""
+    """Fetch one company's jobs. Returns (key, jobs). Errors give None, so we retry next run."""
     board, company = key
     try:
         return key, FETCHERS[board](company)
     except Exception as err:  # one bad board should not stop the rest
         print(f"  skip {board}/{company}: {err}")
-        return key, {}
+        return key, None
 
 
 def main():
-    load_dotenv()
-    db_url = os.environ.get("DATABASE_URL")
-    if not db_url:
-        sys.exit("Set DATABASE_URL first (in .env or the environment).")
-
-    with psycopg.connect(db_url) as conn, conn.cursor() as cur:
+    with connect() as conn, conn.cursor() as cur:
         cur.execute(TODO_SQL)
         todo = cur.fetchall()
 
@@ -69,8 +60,12 @@ def main():
 
         rows = []
         found = 0
+        failed = 0
         for key, postings in groups.items():
-            jobs = boards.get(key, {})
+            jobs = boards.get(key)
+            if jobs is None:  # the request failed: do not mark these as checked
+                failed += len(postings)
+                continue
             for posting_id, job_id in postings:
                 text = jobs.get(job_id)
                 if text:
@@ -79,7 +74,8 @@ def main():
                              "source": key[0] if text else None})
         cur.executemany(SAVE_SQL, rows)
 
-    print(f"Saved {found} descriptions. {len(rows) - found} not found (job closed or hidden).")
+    print(f"Saved {found} descriptions. {len(rows) - found} not found (job closed or hidden). "
+          f"{failed} skipped because the board did not answer.")
 
 
 if __name__ == "__main__":

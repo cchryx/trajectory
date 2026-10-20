@@ -16,3 +16,8 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# Trajectory
+models/
+.cache/
+.pytest_cache/

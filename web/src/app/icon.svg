@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Trajectory</title>
+  <rect width="64" height="64" rx="14" fill="#1d2e28"/>
+  <path d="M44.5 44.5 A17 17 0 1 1 46 24" fill="none" stroke="#7cc3a5" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="47" cy="17" r="6" fill="#d9bd73"/>
+</svg>

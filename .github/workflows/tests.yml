@@ -1,0 +1,59 @@
+name: Tests
+
+on:
+    push:
+    pull_request:
+
+jobs:
+    python:
+        runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: pgvector/pgvector:pg16
+                env:
+                    POSTGRES_PASSWORD: pg
+                    POSTGRES_DB: traj
+                ports: ["5432:5432"]
+                options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+        env:
+            DATABASE_URL: postgresql://postgres:pg@localhost:5432/traj
+            TEST_DATABASE_URL: postgresql://postgres:pg@localhost:5432/traj
+            EMBEDDER: hash
+            MATCH_RATE_LIMIT: "100"
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: "3.12"
+                  cache: pip
+            - run: pip install -r requirements-dev.txt
+            - name: Create tables
+              run: |
+                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/001_jobs.sql
+                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/002_trajectory.sql
+                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/003_campuses.sql
+            - name: Load test data
+              run: |
+                  python -m loaders.load_postings
+                  python -m loaders.tag_skills
+                  python -m loaders.embed_postings
+                  mkdir -p .cache/uoft
+                  sed '/pager__item--last/d' tests/fixtures/uoft_csc_page.html > .cache/uoft/course_keyword-CSC_page-0.html
+                  python -m loaders.load_courses --subjects CSC
+            - run: pytest -q
+
+    web:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: web
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: web/package-lock.json
+            - run: npm ci
+            - run: npm run lint
+            - run: npm run build

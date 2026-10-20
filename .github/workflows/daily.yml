@@ -8,6 +8,8 @@ on:
 jobs:
     load:
         runs-on: ubuntu-latest
+        env:
+            DATABASE_URL: ${{ secrets.DATABASE_URL }}
         steps:
             - uses: actions/checkout@v4
 
@@ -19,17 +21,20 @@ jobs:
 
             - run: pip install -r loaders/requirements.txt
 
+            # Keep the embedding model between runs so it downloads once.
+            - uses: actions/cache@v4
+              with:
+                  path: models
+                  key: fastembed-bge-small-en-v1.5
+
             - name: Load internship postings
-              run: python loaders/load_postings.py
-              env:
-                  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+              run: python -m loaders.load_postings
 
             - name: Fetch job descriptions
-              run: python loaders/load_descriptions.py
-              env:
-                  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+              run: python -m loaders.load_descriptions
 
             - name: Tag skills
-              run: python loaders/tag_skills.py
-              env:
-                  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+              run: python -m loaders.tag_skills
+
+            - name: Embed postings
+              run: python -m loaders.embed_postings

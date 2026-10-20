@@ -4,14 +4,10 @@ Also saves the skill list into the skills table.
 Re-tags every open posting each run, so changes to skills.py apply to old postings too.
 """
 
-import os
-import sys
 from collections import Counter
 
-import psycopg
-from dotenv import load_dotenv
-
-from skills import SKILLS, find_skills
+from trajectory.db import connect
+from trajectory.skills import SKILLS, find_skills
 
 SAVE_SKILL_SQL = """
 insert into skills (name, aliases, kind)
@@ -26,12 +22,7 @@ where id = %(id)s and skills is distinct from %(skills)s
 
 
 def main():
-    load_dotenv()
-    db_url = os.environ.get("DATABASE_URL")
-    if not db_url:
-        sys.exit("Set DATABASE_URL first (in .env or the environment).")
-
-    with psycopg.connect(db_url) as conn, conn.cursor() as cur:
+    with connect() as conn, conn.cursor() as cur:
         # 1. Save the skill list.
         cur.executemany(SAVE_SKILL_SQL, [(n, a, k) for n, k, a in SKILLS])
 

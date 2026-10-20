@@ -1,0 +1,6 @@
+# Everything, plus test tools. For local work: pip install -r requirements-dev.txt
+-r api/requirements.txt
+-r loaders/requirements.txt
+pytest==9.1.1
+httpx==0.28.1
+reportlab==5.0.1
