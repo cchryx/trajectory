@@ -87,15 +87,28 @@ def filters():
         cur.execute("select count(*), count(description) from postings where active")
         total, described = cur.fetchone()
         cur.execute(
-            "select s.id, s.name, c.id, c.name, c.calendar, count(co.id) "
+            "select s.id, s.name, c.id, c.name, f.id, f.name, count(co.id) "
             "from schools s join campuses c on c.school_id = s.id "
-            "left join courses co on co.campus_id = c.id and co.active "
-            "group by s.id, s.name, c.id, c.name, c.calendar order by s.name, c.name"
+            "join faculties f on f.campus_id = c.id "
+            "left join courses co on co.faculty_id = f.id and co.active "
+            "group by s.id, s.name, c.id, c.name, f.id, f.name order by s.name, c.id, f.name"
         )
         schools: dict[str, dict] = {}
-        for sid, sname, cid, cname, calendar, n in cur.fetchall():
+        campuses: dict[str, dict] = {}
+        for sid, sname, cid, cname, fid, fname, n in cur.fetchall():
             school = schools.setdefault(sid, {"id": sid, "name": sname, "campuses": []})
-            school["campuses"].append({"id": cid, "name": cname, "calendar": calendar, "courses": n})
+            if cid not in campuses:
+                campuses[cid] = {"id": cid, "name": cname, "courses": 0, "faculties": [], "breadth": []}
+                school["campuses"].append(campuses[cid])
+            campuses[cid]["faculties"].append({"id": fid, "name": fname, "courses": n})
+            campuses[cid]["courses"] += n
+        cur.execute(
+            "select campus_id, b, count(*) from courses, unnest(breadth) b "
+            "where active group by campus_id, b order by campus_id, b"
+        )
+        for cid, name, n in cur.fetchall():
+            if cid in campuses:
+                campuses[cid]["breadth"].append({"name": name, "courses": n})
         schools = list(schools.values())
     return {
         "countries": [{"id": "CA", "name": "Canada"}, {"id": "US", "name": "United States"}, {"id": "other", "name": "Other"}],
@@ -151,14 +164,20 @@ def match_resume(
 
 @app.get("/courses/search")
 def course_search(
-    q: str = Query(..., min_length=2, max_length=300),
+    q: str = Query("", max_length=300),
     school: str = "uoft",
     campus: str | None = None,
+    faculty: str | None = None,
+    breadth: str | None = None,
+    year: int | None = Query(None, ge=1, le=4),
     mode: str = Query("hybrid", pattern="^(" + "|".join(MODES) + ")$"),
-    limit: int = Query(10, ge=1, le=50),
+    limit: int = Query(10, ge=1, le=100),
 ):
     with pool.connection() as conn:
-        results = search(conn, q, school=school, mode=mode, limit=limit, campus=campus or None)
+        if len(q.strip()) < 2 and not (breadth or faculty or year):
+            raise HTTPException(422, "Type at least 2 letters, or pick a filter.")
+        results = search(conn, q, school=school, mode=mode, limit=limit, campus=campus or None,
+                         faculty=faculty or None, breadth=breadth or None, year=year)
     _count("course_search")
     return {"query": q, "mode": mode, "results": results}
 

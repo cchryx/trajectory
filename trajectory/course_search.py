@@ -15,32 +15,40 @@ RRF_K = 60
 POOL = 50  # results taken from each list before merging
 MODES = ("hybrid", "keyword", "vector")
 
-KEYWORD_SQL = """
+FILTERS = """
+  and (%(campus)s::text is null or campus_id = %(campus)s)
+  and (%(faculty)s::text is null or faculty_id = %(faculty)s)
+  and (%(breadth)s::text is null or %(breadth)s = any(breadth))
+  and (%(year)s::int is null or year_level = %(year)s)
+"""
+
+KEYWORD_SQL = f"""
 select id from courses, websearch_to_tsquery('english', %(q)s) query
 where active and school_id = %(school)s and fts @@ query
-  and (%(campus)s::text is null or campus_id = %(campus)s)
+{FILTERS}
 order by ts_rank_cd(fts, query) desc, code
 limit %(limit)s
 """
 
-VECTOR_SQL = """
+VECTOR_SQL = f"""
 select id from courses
 where active and school_id = %(school)s and embedding is not null
-  and (%(campus)s::text is null or campus_id = %(campus)s)
+{FILTERS}
 order by embedding <=> %(vec)s::vector
 limit %(limit)s
 """
 
-CODE_IN_QUERY = re.compile(r"\b([A-Za-z]{3})\s?(\d{3})", re.IGNORECASE)
+# "CSC 263", "csc263" or UTSC style "CSCA08".
+CODE_IN_QUERY = re.compile(r"\b([A-Za-z]{3})\s?([A-Za-z0-9]\d{2})\b", re.IGNORECASE)
 
-CODE_SQL = """
+CODE_SQL = f"""
 select id from courses
 where active and school_id = %(school)s and code like any(%(patterns)s)
-  and (%(campus)s::text is null or campus_id = %(campus)s)
+{FILTERS}
 order by code
 """
 
-COURSE_COLS = "id, campus_id, code, title, description, year_level, credits, url, skills, prereq_text"
+COURSE_COLS = "id, campus_id, faculty_id, breadth, code, title, description, year_level, credits, url, skills, prereq_text"
 
 
 def _keyword_query(q):
@@ -59,23 +67,28 @@ def rrf(*ranked_lists, k=RRF_K):
     return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
 
 
-def search_ids(conn, q, school="uoft", mode="hybrid", limit=10, campus=None):
+def _filters(school, campus=None, faculty=None, breadth=None, year=None):
+    return {"school": school, "campus": campus, "faculty": faculty, "breadth": breadth, "year": year}
+
+
+def search_ids(conn, q, school="uoft", mode="hybrid", limit=10, campus=None, faculty=None, breadth=None, year=None):
     """Ranked course ids for a question. Used by the API and the evals."""
     if mode not in MODES:
         raise ValueError(f"mode must be one of {MODES}")
+    f = _filters(school, campus, faculty, breadth, year)
     keyword, vector = [], []
     with conn.cursor() as cur:
         if mode in ("hybrid", "keyword"):
-            cur.execute(KEYWORD_SQL, {"q": _keyword_query(q), "school": school, "campus": campus, "limit": POOL})
+            cur.execute(KEYWORD_SQL, {**f, "q": _keyword_query(q), "limit": POOL})
             keyword = [r[0] for r in cur.fetchall()]
         if mode in ("hybrid", "vector"):
-            cur.execute(VECTOR_SQL, {"vec": to_pg(embed_query(q)), "school": school, "campus": campus, "limit": POOL})
+            cur.execute(VECTOR_SQL, {**f, "vec": to_pg(embed_query(q)), "limit": POOL})
             vector = [r[0] for r in cur.fetchall()]
         # A course code in the question, like "CSC 263", goes straight to the top.
-        patterns = [f"{a.upper()}{b}%" for a, b in CODE_IN_QUERY.findall(q)]
+        patterns = [f"{a.upper()}{b.upper()}%" for a, b in CODE_IN_QUERY.findall(q)]
         exact = []
         if patterns:
-            cur.execute(CODE_SQL, {"school": school, "campus": campus, "patterns": patterns})
+            cur.execute(CODE_SQL, {**f, "patterns": patterns})
             exact = [r[0] for r in cur.fetchall()]
     lists = [lst for lst in (keyword, vector) if lst]
     merged = rrf(*lists)
@@ -88,8 +101,28 @@ def _rows(cur):
     return [dict(zip(cols, r)) for r in cur.fetchall()]
 
 
-def search(conn, q, school="uoft", mode="hybrid", limit=10, campus=None):
-    ranked = search_ids(conn, q, school, mode, limit, campus)
+BROWSE_SQL = f"""
+select id from courses
+where active and school_id = %(school)s
+{FILTERS}
+order by year_level nulls last, code
+limit %(limit)s
+"""
+
+
+def search(conn, q, school="uoft", mode="hybrid", limit=10, campus=None, faculty=None, breadth=None, year=None):
+    """Search with a question. With no question, list the courses that match the filters
+    (for example, every course that counts for one breadth requirement)."""
+    if q and q.strip():
+        ranked = search_ids(conn, q, school, mode, limit, campus, faculty, breadth, year)
+    else:
+        with conn.cursor() as cur:
+            cur.execute(BROWSE_SQL, {**_filters(school, campus, faculty, breadth, year), "limit": limit})
+            ranked = [(r[0], 0.0) for r in cur.fetchall()]
+    return _load(conn, ranked)
+
+
+def _load(conn, ranked):
     if not ranked:
         return []
     with conn.cursor() as cur:
@@ -118,11 +151,12 @@ def course_detail(conn, course_id, depth=3):
         course = rows[0]
         course["credits"] = float(course["credits"]) if course["credits"] is not None else None
         cur.execute(
-            "select s.name, c.name from schools s left join campuses c on c.id = %s where s.id = %s",
-            (course["campus_id"], course["school_id"]),
+            "select s.name, c.name, f.name from schools s left join campuses c on c.id = %s "
+            "left join faculties f on f.id = %s where s.id = %s",
+            (course["campus_id"], course["faculty_id"], course["school_id"]),
         )
         found = cur.fetchone()
-        course["school_name"], course["campus_name"] = found if found else (None, None)
+        course["school_name"], course["campus_name"], course["faculty_name"] = found if found else (None,) * 3
 
         # Walk back through prerequisites, one level at a time.
         edges, seen, frontier = [], {course_id}, [course_id]

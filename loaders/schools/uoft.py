@@ -1,12 +1,19 @@
-"""University of Toronto, St. George campus: Faculty of Arts & Science calendar.
+"""University of Toronto: every campus and faculty calendar.
 
-Reads the public course search at artsci.calendar.utoronto.ca, one subject at a time.
-robots.txt allows /search-courses. We send at most 1 request per second and cache
-every page on disk, so a second run in the same place sends no requests.
+UofT has one course calendar per faculty or campus:
+- St. George: Faculty of Arts & Science, and Faculty of Applied Science & Engineering
+- Mississauga (UTM)
+- Scarborough (UTSC)
+
+They all run on the same website system, with small differences (handled below).
+We read each public course search page. robots.txt allows these pages.
+We send at most 1 request per second and cache every page on disk,
+so a second run in the same place sends no requests.
 """
 
 import re
 import time
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -16,20 +23,68 @@ import requests
 from bs4 import BeautifulSoup
 
 SCHOOL = {"id": "uoft", "name": "University of Toronto", "credit_unit": "FCE"}
-CAMPUS = {"id": "uoft-stg", "school_id": "uoft", "name": "St. George", "calendar": "Faculty of Arts & Science"}
 
-BASE = "https://artsci.calendar.utoronto.ca"
-SEARCH = BASE + "/search-courses"
+CAMPUSES = {
+    "uoft-stg": {"id": "uoft-stg", "school_id": "uoft", "name": "St. George", "calendar": None},
+    "uoft-utm": {"id": "uoft-utm", "school_id": "uoft", "name": "Mississauga (UTM)", "calendar": None},
+    "uoft-utsc": {"id": "uoft-utsc", "school_id": "uoft", "name": "Scarborough (UTSC)", "calendar": None},
+}
+
 HEADERS = {"User-Agent": "TrajectoryBot/1.0 (student project; course search)"}
 DELAY = 1.0  # seconds between requests
 TIMEOUT = 30
 
-HEADING = re.compile(r"^([A-Z]{3}\d{3}[HY]\d)\s*-\s*(.+)$")
+CODE = r"[A-Z]{3}[A-Z0-9]\d{2}[HY]\d"
+HEADING = re.compile(rf"^({CODE})\s*[-•–]\s*(.+)$")
+
+# Field class on the page -> key in the shared course shape.
 FIELDS = {
     "prerequisite": "prereq_text",
     "exclusion": "exclusions",
     "recommended": "recommended",
+    "recommended-preparation": "recommended",
+    "breadth-requirements": "breadth",
+    "distribution-requirements": "breadth",
 }
+
+
+@dataclass
+class Calendar:
+    """One faculty's course calendar."""
+
+    id: str  # faculty id, like 'uoft-artsci'
+    name: str  # 'Faculty of Arts & Science'
+    campus_id: str
+    base: str
+    search_path: str = "/search-courses"
+    letter_years: bool = False  # UTSC: CSCA08H3, where A = year 1
+
+    @property
+    def school(self):
+        return SCHOOL
+
+    @property
+    def campus(self):
+        return CAMPUSES[self.campus_id]
+
+    @property
+    def faculty(self):
+        return {"id": self.id, "campus_id": self.campus_id, "name": self.name}
+
+    def fetch(self, subjects, cache_dir):
+        return fetch_courses(self, subjects, cache_dir)
+
+
+CALENDARS = [
+    Calendar("uoft-artsci", "Faculty of Arts & Science", "uoft-stg", "https://artsci.calendar.utoronto.ca"),
+    Calendar(
+        "uoft-eng", "Faculty of Applied Science & Engineering", "uoft-stg", "https://engineering.calendar.utoronto.ca"
+    ),
+    Calendar("uoft-utm", "UTM Academic Calendar", "uoft-utm", "https://utm.calendar.utoronto.ca", "/course-search"),
+    Calendar(
+        "uoft-utsc", "UTSC Academic Calendar", "uoft-utsc", "https://utsc.calendar.utoronto.ca", letter_years=True
+    ),
+]
 
 
 def calendar_year(today=None):
@@ -39,22 +94,48 @@ def calendar_year(today=None):
     return f"{start}-{start + 1}"
 
 
+def year_level(code, letter_years=False):
+    """CSC148H1 -> 1. UTSC: CSCB07H3 -> 2 (A=1, B=2, C=3, D=4)."""
+    ch = code[3]
+    if ch.isdigit():
+        return int(ch)
+    return "ABCD".index(ch) + 1 if letter_years and ch in "ABCD" else None
+
+
 def field_text(field):
-    """Text of one field. Stops at a bold sub-heading such as the rule for Engineering students."""
+    """Text of one field.
+
+    Skips a bold label at the start ("Prerequisite:"), as on the Engineering calendar.
+    Stops at a later bold sub-heading, such as the separate rule for Engineering students
+    on the Arts & Science calendar.
+    """
     content = field.select_one(".field-content")
     if content is None:
         return ""
     parts = []
     for node in content.children:
         if getattr(node, "name", None) == "strong":
+            if not parts and node.get_text(strip=True).endswith(":"):
+                continue
             break
         parts.append(node.get_text(" ") if hasattr(node, "get_text") else str(node))
     text = " ".join(parts).replace("​", "")
     return re.sub(r"\s+", " ", text).strip()
 
 
-def parse_page(html, year=None):
+def split_breadth(text):
+    """'Creative and Cultural Representations (1), Society and its Institutions (3)' -> 2 items.
+    Names can contain commas ("Thought, Belief and Behaviour (2)"), so split only after ')'."""
+    if not text:
+        return []
+    if re.search(r"\(\d\)", text):
+        return [p.strip() for p in re.split(r"(?<=\))\s*,\s*", text) if p.strip()]
+    return [text.strip()]
+
+
+def parse_page(html, cal=None, year=None):
     """Return the courses on one search results page."""
+    cal = cal or CALENDARS[0]
     soup = BeautifulSoup(html, "html.parser")
     out = []
     for row in soup.select(".view-content > .views-row"):
@@ -66,8 +147,15 @@ def parse_page(html, year=None):
             continue
         code, title = match.group(1), match.group(2).strip()
 
-        body = row.select_one(".views-field-body .field-content")
+        body = row.select_one(".views-field-body .field-content, .views-field-field-desc .field-content")
         description = re.sub(r"\s+", " ", body.get_text(" ")).strip() if body else ""
+
+        credits = 1.0 if code[6] == "Y" else 0.5
+        credit_field = row.select_one(".views-field-field-credit")
+        if credit_field:
+            m = re.search(r"(\d+(?:\.\d+)?)", credit_field.get_text(" "))
+            if m:
+                credits = float(m.group(1))
 
         course = {
             "code": code,
@@ -76,18 +164,22 @@ def parse_page(html, year=None):
             "prereq_text": "",
             "exclusions": "",
             "recommended": "",
-            "year_level": int(code[3]),
-            "credits": 1.0 if code[6] == "Y" else 0.5,
-            "terms_offered": None,  # the calendar does not list terms
+            "breadth": [],
+            "year_level": year_level(code, cal.letter_years),
+            "credits": credits,
+            "terms_offered": None,  # the calendars do not list terms
             "calendar_year": year or calendar_year(),
-            "url": f"{BASE}/course/{code.lower()}",
-            "campus_id": CAMPUS["id"],
+            "url": f"{cal.base}/course/{code}",
+            "campus_id": cal.campus_id,
+            "faculty_id": cal.id,
         }
         for field in row.select(".views-field"):
             for cls in field.get("class", []):
                 name = cls.removeprefix("views-field-field-")
                 if name != cls and name in FIELDS:
-                    course[FIELDS[name]] = field_text(field)
+                    text = field_text(field)
+                    key = FIELDS[name]
+                    course[key] = split_breadth(text) if key == "breadth" else text
         out.append(course)
     return out
 
@@ -103,10 +195,11 @@ def last_page(html):
 
 
 class Fetcher:
-    """Polite fetcher: checks robots.txt, waits between requests and caches pages."""
+    """Polite fetcher for one calendar: checks robots.txt, waits between requests, caches pages."""
 
-    def __init__(self, cache_dir):
-        self.cache = Path(cache_dir) / "uoft"
+    def __init__(self, cal, cache_dir):
+        self.cal = cal
+        self.cache = Path(cache_dir) / "uoft" / cal.id
         self.cache.mkdir(parents=True, exist_ok=True)
         self.session = requests.Session()
         self.session.headers.update(HEADERS)
@@ -118,9 +211,9 @@ class Fetcher:
         path = self.cache / key
         if path.exists():
             return path.read_text(encoding="utf-8")
-        url = requests.Request("GET", SEARCH, params=params).prepare().url
+        url = requests.Request("GET", self.cal.base + self.cal.search_path, params=params).prepare().url
         if self.robots is None:
-            self.robots = RobotFileParser(BASE + "/robots.txt")
+            self.robots = RobotFileParser(self.cal.base + "/robots.txt")
             self.robots.read()
         if not self.robots.can_fetch(HEADERS["User-Agent"], url):
             raise RuntimeError(f"robots.txt does not allow {url}")
@@ -133,20 +226,29 @@ class Fetcher:
         path.write_text(res.text, encoding="utf-8")
         return res.text
 
+    def all_pages(self, params):
+        first = self.get({**params, "page": 0})
+        return [first] + [self.get({**params, "page": p}) for p in range(1, last_page(first) + 1)]
 
-def fetch_courses(subjects, cache_dir):
-    """All courses for the given subject codes, like ["CSC", "MAT", "STA"]."""
-    fetcher = Fetcher(cache_dir)
+
+def fetch_courses(cal, subjects, cache_dir):
+    """Courses from one calendar. subjects=None loads every course.
+    Otherwise only codes that start with a subject, like ["CSC", "PHY"] (UTSC CSCA08H3 counts as CSC)."""
+    fetcher = Fetcher(cal, cache_dir)
     found = {}
-    for subject in subjects:
-        first = fetcher.get({"course_keyword": subject, "page": 0})
-        pages = [first] + [
-            fetcher.get({"course_keyword": subject, "page": p}) for p in range(1, last_page(first) + 1)
-        ]
+    if not subjects:
+        pages = fetcher.all_pages({})
         for html in pages:
-            for course in parse_page(html):
-                # The keyword search also finds other subjects that mention this one.
+            for course in parse_page(html, cal):
+                found[course["code"]] = course
+        print(f"  {cal.name}: {len(found)} courses from {len(pages)} pages")
+        return list(found.values())
+    for subject in subjects:
+        pages = fetcher.all_pages({"course_keyword": subject})
+        for html in pages:
+            for course in parse_page(html, cal):
+                # The keyword search also finds courses that only mention the subject.
                 if course["code"].startswith(subject):
                     found[course["code"]] = course
-        print(f"  {subject}: {sum(c.startswith(subject) for c in found)} courses from {len(pages)} pages")
+        print(f"  {cal.name} {subject}: {sum(c.startswith(subject) for c in found)} courses")
     return list(found.values())
