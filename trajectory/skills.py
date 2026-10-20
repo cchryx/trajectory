@@ -254,15 +254,34 @@ MATCHERS = [
 ]
 
 
+# On courses, tools and languages ("pandas", "Spark", "Ruby") only count when the
+# description is about computing. Otherwise "giant pandas" in an anthropology course
+# would count as the pandas library. Topics like Statistics or Algorithms always count.
+TOOL_KINDS = {"language", "framework", "data", "tool", "cloud"}
+KIND = {name: kind for name, kind, _aliases in SKILLS}
+COMPUTING = re.compile(
+    r"\b(?:program|programming|programs|software|code|coding|computer|computers|computing|computational"
+    r"|computation|algorithm|algorithms|database|databases|data science|machine learning|scripting)\b",
+    re.IGNORECASE,
+)
+
+
 def find_skills(text, course=False):
     """Return the sorted list of skill names mentioned in the text.
-    Set course=True for course descriptions, which skip NOT_ON_COURSES."""
+    Set course=True for course descriptions, which are checked more strictly."""
     # Drop trademark marks, so "Microsoft(R)" does not count as the R language.
     text = (text or "").replace("(R)", " ").replace("(C)", " ")
+    about_computing = bool(COMPUTING.search(text))
+
+    def allowed(name):
+        if not course:
+            return True
+        if name in NOT_ON_COURSES:
+            return False
+        return about_computing or KIND[name] not in TOOL_KINDS
+
     return sorted(
-        name
-        for name, patterns in MATCHERS
-        if not (course and name in NOT_ON_COURSES) and any(p.search(text) for p in patterns)
+        name for name, patterns in MATCHERS if allowed(name) and any(p.search(text) for p in patterns)
     )
 
 
