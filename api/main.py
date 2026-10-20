@@ -19,6 +19,7 @@ from trajectory import embed
 from trajectory.course_search import MODES, course_detail, search
 from trajectory.db import database_url
 from trajectory.matching import ResumeError, match, pdf_text
+from trajectory.planner import planner_courses
 from trajectory.terms import realistic_terms
 
 MAX_UPLOAD = 2 * 1024 * 1024  # 2 MB
@@ -181,6 +182,13 @@ def course_search(
                          faculty=faculty or None, breadth=breadth or None, year=year)
     _count("course_search")
     return {"query": q, "mode": mode, "results": results}
+
+
+@app.get("/planner/courses")
+def planner(ids: str = Query(..., max_length=4000)):
+    """Details the planner needs for a list of courses: ids=uoft:CSC148H1,uoft:CSC207H1"""
+    with pool.connection() as conn:
+        return planner_courses(conn, [i.strip() for i in ids.split(",") if i.strip()])
 
 
 @app.get("/courses/{course_id}")
