@@ -5,17 +5,15 @@
 - Marks postings as closed (active = false) when they are closed or gone from the list.
 - Never touches description, skills or embedding. Later loaders fill those.
 
-Run:  python loaders/load_postings.py
+Run from the repo root:  python -m loaders.load_postings
 Needs DATABASE_URL in the environment or in a .env file at the repo root.
 """
 
-import os
-import sys
 from datetime import datetime, timezone
 
-import psycopg
 import requests
-from dotenv import load_dotenv
+
+from trajectory.db import connect
 
 LISTINGS_URL = (
     "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/"
@@ -107,17 +105,12 @@ def keep(item):
 
 
 def main():
-    load_dotenv()
-    db_url = os.environ.get("DATABASE_URL")
-    if not db_url:
-        sys.exit("Set DATABASE_URL first (in .env or the environment).")
-
     items = fetch_listings()
     rows = [to_row(x) for x in items if keep(x)]
     open_ids = [r["id"] for r in rows if r["active"]]
     print(f"Fetched {len(items)} listings. Kept {len(rows)}, {len(open_ids)} open.")
 
-    with psycopg.connect(db_url) as conn, conn.cursor() as cur:
+    with connect() as conn, conn.cursor() as cur:
         cur.execute("select id from postings")
         before = {r[0] for r in cur.fetchall()}
 
