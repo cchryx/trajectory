@@ -26,6 +26,13 @@ def test_skills_in_course_descriptions():
     assert find_skills("Types, lambda calculus and type inference.", course=True) == []
     assert find_skills("Readings from Kafka and Borges.", course=True) == []
     assert find_skills("Stream events with Kafka.") == ["Kafka"]
+    # Tools only count on courses about computing.
+    apes = "The real planet of the apes: primate behaviour, from chimpanzees to giant pandas."
+    assert find_skills(apes, course=True) == []
+    data = "Data analysis with Python, pandas and NumPy. Students write code each week."
+    assert find_skills(data, course=True) == ["Data Analysis", "NumPy", "Python", "pandas"]
+    # Topics count without computing words.
+    assert find_skills("Probability and statistics for scientists.", course=True) == ["Probability", "Statistics"]
 
 
 # Prerequisites -------------------------------------------------------------
