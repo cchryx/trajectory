@@ -17,7 +17,7 @@ Upload your resume. Trajectory ranks open internships by fit and lists the skill
 1. A daily job pulls open internships for every term from the [SimplifyJobs list](https://github.com/SimplifyJobs/Summer2027-Internships) into Supabase.
 2. It fetches full descriptions from Greenhouse, Lever and Ashby job boards where they are public.
 3. Each posting gets skill tags and a 384-number vector (fastembed, `BAAI/bge-small-en-v1.5`).
-4. A monthly job loads courses by school and campus. It starts with University of Toronto, St. George campus (Arts & Science: CSC, MAT, STA). Prerequisites are saved in one shared and/or format, so any school can be added.
+4. A monthly job loads every course from every UofT calendar, grouped as school > campus > faculty: St. George (Arts & Science, Engineering), Mississauga (UTM) and Scarborough (UTSC). Each course keeps its breadth requirements. Prerequisites are saved in one shared and/or format, so any school can be added.
 5. When you upload a resume, the API turns it into a vector and finds the 50 closest postings.
 6. Each one is scored: `fit = 0.6 × meaning match + 0.4 × skill overlap`. The top 20 are returned with missing skills and courses that teach them.
 7. Course search mixes keyword search and meaning search, merged with reciprocal rank fusion.
@@ -45,9 +45,10 @@ Do these once, in order.
 
 1. Open Supabase > SQL Editor.
 2. Paste and run `db/002_trajectory.sql`. It adds 3 columns the loaders need, the course tables and the indexes.
-3. Paste and run `db/003_campuses.sql`. It adds campuses, so courses are grouped by school and campus.
+3. Paste and run `db/003_campuses.sql`. It adds campuses.
+4. Paste and run `db/004_faculties.sql`. It adds faculties and breadth requirements.
 
-Both files are safe to run twice.
+All three files are safe to run twice.
 
 ### 2. Rename the GitHub repo (optional)
 
@@ -59,7 +60,7 @@ Both files are safe to run twice.
 
 1. Push the code to GitHub.
 2. Open Actions > Daily job refresh > Run workflow. This loads jobs and makes the vectors. The first run downloads the model (about 70 MB).
-3. Open Actions > Course refresh > Run workflow. This loads UofT CSC, MAT and STA courses. It takes a few minutes, because it waits 1 second between pages.
+3. Open Actions > Course refresh > Run workflow. This loads every UofT course from all 4 calendars. It takes about 6 minutes, because it waits 1 second between pages.
 
 ### 4. Deploy on Render
 
@@ -97,7 +98,8 @@ python -m loaders.load_postings
 python -m loaders.load_descriptions
 python -m loaders.tag_skills
 python -m loaders.embed_postings
-python -m loaders.load_courses --subjects CSC,MAT,STA
+python -m loaders.load_courses                    # all UofT calendars, about 6 minutes
+python -m loaders.load_courses --faculty uoft-utm --subjects PHY,CHM   # just part of one
 
 # API on http://localhost:8000
 uvicorn api.main:app --reload
@@ -119,13 +121,21 @@ TEST_DATABASE_URL=postgresql://... EMBEDDER=hash pytest
 
 `EMBEDDER=hash` uses fake vectors, so tests need no model download. GitHub Actions runs everything on each push (see `.github/workflows/tests.yml`).
 
-## Add a university or campus
+## Add a university, campus or faculty
 
-Courses are grouped by school, then campus. Each campus calendar gets its own module.
+Courses are grouped as school > campus > faculty. Each faculty has its own calendar.
 
-1. Add a module in `loaders/schools/`, like `utm.py` (UofT Mississauga) or `waterloo.py`, with `SCHOOL`, `CAMPUS` and `fetch_courses()`. It must return the shared course shape (see `loaders/schools/__init__.py`). Campuses of one school share the same `SCHOOL`.
-2. List it in `CAMPUSES` in `loaders/schools/__init__.py`.
-3. Run `python -m loaders.load_courses --campus uoft-utm --subjects CSC,MAT`.
+| Faculty id | Campus | Calendar |
+|---|---|---|
+| `uoft-artsci` | St. George | Faculty of Arts & Science |
+| `uoft-eng` | St. George | Faculty of Applied Science & Engineering |
+| `uoft-utm` | Mississauga (UTM) | UTM Academic Calendar |
+| `uoft-utsc` | Scarborough (UTSC) | UTSC Academic Calendar |
+
+- Another UofT faculty on the same website system: add one `Calendar(...)` line to `CALENDARS` in `loaders/schools/uoft.py`.
+- Another school: write a module like `uoft.py` whose calendars have `school`, `campus`, `faculty` and `fetch()`, and add them to `FACULTIES` in `loaders/schools/__init__.py`.
+
+Then run `python -m loaders.load_courses --faculty <id>`. No table or search changes are needed.
 
 No table or search changes are needed.
 
@@ -136,7 +146,7 @@ No table or search changes are needed.
 | GET | `/health` | Health check |
 | GET | `/filters` | Terms, role types, schools and campuses for the menus |
 | POST | `/match` | Form data: `file` (PDF, up to 2 MB) or `text`, plus optional `country`, `term`, `category`, `school` |
-| GET | `/courses/search?q=...&campus=uoft-stg` | Course search. Optional `mode`: `hybrid`, `keyword` or `vector` |
+| GET | `/courses/search?q=...&campus=uoft-stg` | Course search. Optional: `faculty`, `breadth`, `year`, `mode`. With no `q`, lists every course that matches the filters |
 | GET | `/courses/{id}` | One course, like `uoft:CSC207H1`, with its prerequisite graph and what it unlocks |
 
 ## Credits

@@ -1,15 +1,19 @@
 name: Course refresh
 
 # Course calendars change about once a term, so this runs on the 1st of each month.
-# Run it by hand from the Actions tab after you add subjects.
+# It loads every course from every UofT calendar: St. George (Arts & Science, Engineering),
+# Mississauga and Scarborough. At 1 request per second this takes about 6 minutes.
 on:
     schedule:
         - cron: "41 9 1 * *"
     workflow_dispatch:
         inputs:
+            faculty:
+                description: "Faculty ids, comma-separated, or all"
+                default: "all"
             subjects:
-                description: "Subject codes, comma-separated"
-                default: "CSC,MAT,STA"
+                description: "Subject codes like CSC,PHY,CHM, or all"
+                default: "all"
 
 jobs:
     load:
@@ -32,5 +36,5 @@ jobs:
                   path: models
                   key: fastembed-bge-small-en-v1.5
 
-            - name: Load UofT St. George courses
-              run: python -m loaders.load_courses --campus uoft-stg --subjects "${{ inputs.subjects || 'CSC,MAT,STA' }}"
+            - name: Load UofT courses
+              run: python -m loaders.load_courses --faculty "${{ inputs.faculty || 'all' }}" --subjects "${{ inputs.subjects || 'all' }}"

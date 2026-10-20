@@ -101,17 +101,26 @@ def test_course_search_and_detail(client):
     assert client.get("/courses/uoft:NOPE").status_code == 404
 
 
-def test_campuses(client):
+def test_campuses_and_faculties(client):
     schools = client.get("/filters").json()["schools"]
     uoft = next(s for s in schools if s["id"] == "uoft")
     assert uoft["name"] == "University of Toronto"
-    stg = next(c for c in uoft["campuses"] if c["id"] == "uoft-stg")
-    assert stg["name"] == "St. George" and stg["courses"] > 0
+    campuses = {c["id"]: c for c in uoft["campuses"]}
+    assert set(campuses) == {"uoft-stg", "uoft-utm", "uoft-utsc"}
+    assert {f["id"] for f in campuses["uoft-stg"]["faculties"]} == {"uoft-artsci", "uoft-eng"}
+    assert {"name": "Science", "courses": 1} in campuses["uoft-utm"]["breadth"]
 
-    res = client.get("/courses/search", params={"q": "software design", "campus": "uoft-stg"}).json()
-    assert res["results"] and all(r["campus_id"] == "uoft-stg" for r in res["results"])
-    assert client.get("/courses/search", params={"q": "software design", "campus": "uoft-utm"}).json()["results"] == []
+    res = client.get("/courses/search", params={"q": "software design", "campus": "uoft-utsc"}).json()
+    assert [r["code"] for r in res["results"]] == ["CSCB07H3"]
+    res = client.get("/courses/search", params={"q": "software design", "faculty": "uoft-artsci"}).json()
+    assert res["results"] and all(r["faculty_id"] == "uoft-artsci" for r in res["results"])
+    assert client.get("/courses/search", params={"q": "CSCA08"}).status_code == 200
 
-    course = client.get("/courses/uoft:CSC207H1").json()
-    assert course["school_name"] == "University of Toronto" and course["campus_name"] == "St. George"
+    # Browse every course that counts for one breadth requirement, with no search words.
+    res = client.get("/courses/search", params={"breadth": "Quantitative Reasoning"}).json()
+    assert [r["code"] for r in res["results"]] == ["CSCB07H3"]
+    assert client.get("/courses/search").status_code == 422
 
+    course = client.get("/courses/uoft:ECE314H1").json()
+    assert course["campus_name"] == "St. George"
+    assert course["faculty_name"] == "Faculty of Applied Science & Engineering"

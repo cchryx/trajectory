@@ -55,7 +55,8 @@ export function CourseDetail() {
         {course.school_name && (
           <p className="text-sm font-medium text-accent">
             {course.school_name}
-            {course.campus_name ? ` · ${course.campus_name} campus` : ""}
+            {course.campus_name ? ` · ${course.campus_name}` : ""}
+            {course.faculty_name ? ` · ${course.faculty_name}` : ""}
           </p>
         )}
         <p className="font-mono text-sm text-muted">
@@ -126,6 +127,12 @@ export function CourseDetail() {
         )}
       </section>
 
+      {course.breadth && course.breadth.length > 0 && (
+        <p className="text-sm">
+          <span className="font-medium">Counts for breadth:</span>{" "}
+          {course.breadth.join("; ")}
+        </p>
+      )}
       {course.exclusions && (
         <p className="text-sm text-muted">Exclusions: {course.exclusions}</p>
       )}

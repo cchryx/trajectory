@@ -1,21 +1,19 @@
-"""One module per school. Each one scrapes a course calendar and returns the shared course shape.
+"""Course calendars, grouped as school > campus > faculty.
 
-Every school module has:
-- SCHOOL: {"id": "uoft", "name": "...", "credit_unit": "FCE"}
-- CAMPUS: {"id": "uoft-stg", "school_id": "uoft", "name": "St. George", "calendar": "..."}
-- fetch_courses(subjects, cache_dir) -> list of course dicts with these keys:
-    code, title, description, prereq_text, exclusions, recommended,
-    year_level, credits, terms_offered, calendar_year, url, campus_id
-
-A school with several campuses gets one module per campus calendar,
-for example uoft (St. George), later utm and utsc. They share the same SCHOOL.
+Each faculty calendar is one object with:
+- school:  {"id": "uoft", "name": "...", "credit_unit": "FCE"}
+- campus:  {"id": "uoft-stg", "school_id": "uoft", "name": "St. George", "calendar": None}
+- faculty: {"id": "uoft-artsci", "campus_id": "uoft-stg", "name": "Faculty of Arts & Science"}
+- fetch(subjects, cache_dir) -> list of course dicts with these keys:
+    code, title, description, prereq_text, exclusions, recommended, breadth,
+    year_level, credits, terms_offered, calendar_year, url, campus_id, faculty_id
 
 The shared loader (loaders/load_courses.py) does the rest: skill tags, the and/or
-prerequisite format, vectors and saving. To add a school, add one module here
-and list it in CAMPUSES.
+prerequisite format, vectors and saving. To add a school, write a module like uoft.py
+and add its calendars to FACULTIES.
 """
 
 from loaders.schools import uoft
 
-# Keyed by campus id. Run one with: python -m loaders.load_courses --campus uoft-stg
-CAMPUSES = {uoft.CAMPUS["id"]: uoft}
+# Keyed by faculty id, like 'uoft-artsci'.
+FACULTIES = {cal.id: cal for cal in uoft.CALENDARS}

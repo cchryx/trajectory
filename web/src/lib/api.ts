@@ -40,11 +40,14 @@ export type MatchResult = {
   took_ms: number;
 };
 
+export type Faculty = { id: string; name: string; courses: number };
+
 export type Campus = {
   id: string;
   name: string;
-  calendar: string | null;
   courses: number;
+  faculties: Faculty[];
+  breadth: { name: string; courses: number }[];
 };
 
 export type School = { id: string; name: string; campuses: Campus[] };
@@ -61,6 +64,8 @@ export type Filters = {
 export type Course = {
   id: string;
   campus_id: string | null;
+  faculty_id: string | null;
+  breadth: string[] | null;
   code: string;
   title: string;
   description: string | null;
@@ -93,6 +98,7 @@ export type CourseDetail = Course & {
   school_id: string;
   school_name: string | null;
   campus_name: string | null;
+  faculty_name: string | null;
   exclusions: string | null;
   recommended: string | null;
   calendar_year: string | null;
@@ -120,13 +126,20 @@ export async function matchResume(form: FormData): Promise<MatchResult> {
   return read(await fetch(`${API_URL}/match`, { method: "POST", body: form }));
 }
 
+export type CourseQuery = {
+  q: string;
+  school: string;
+  campus?: string;
+  faculty?: string;
+  breadth?: string;
+  year?: string;
+};
+
 export async function searchCourses(
-  q: string,
-  school = "uoft",
-  campus = "",
+  query: CourseQuery,
 ): Promise<{ results: Course[] }> {
-  const params = new URLSearchParams({ q, school, limit: "15" });
-  if (campus) params.set("campus", campus);
+  const params = new URLSearchParams({ limit: query.q ? "15" : "100" });
+  for (const [k, v] of Object.entries(query)) if (v) params.set(k, v);
   return read(await fetch(`${API_URL}/courses/search?${params}`));
 }
 
