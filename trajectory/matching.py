@@ -55,12 +55,15 @@ order by embedding <=> %(vec)s::vector
 limit %(limit)s
 """
 
-COURSES_FOR_SKILLS_SQL = """
-select id, code, title, year_level, url, skills
-from courses
-where active and school_id = %(school)s and skills && %(skills)s
+# Courses tagged with one skill, best first: a course whose title names the skill
+# ("Introduction to Machine Learning") beats one that mentions it once.
+COURSES_FOR_SKILL_SQL = """
+select id, code, title, year_level, url
+from courses, plainto_tsquery('english', %(skill)s) query
+where active and school_id = %(school)s and %(skill)s = any(skills)
   and (%(campus)s::text is null or campus_id = %(campus)s)
-order by year_level, code
+order by ts_rank_cd(fts, query) desc, year_level nulls last, code
+limit %(limit)s
 """
 
 
@@ -110,13 +113,14 @@ def match(conn, resume_text, country=None, term=None, category=None, school="uof
     common = [{"skill": s, "jobs": n, "courses": []} for s, n in counts.most_common(COMMON)]
     if common and school:
         with conn.cursor() as cur:
-            cur.execute(COURSES_FOR_SKILLS_SQL, {"school": school, "campus": campus, "skills": [c["skill"] for c in common]})
-            courses = cur.fetchall()
-        for item in common:
-            item["courses"] = [
-                {"id": cid, "code": code, "title": title, "year_level": yl, "url": url}
-                for cid, code, title, yl, url, skills in courses
-                if item["skill"] in skills
-            ][:COURSES_PER_SKILL]
+            for item in common:
+                cur.execute(
+                    COURSES_FOR_SKILL_SQL,
+                    {"school": school, "campus": campus, "skill": item["skill"], "limit": COURSES_PER_SKILL},
+                )
+                item["courses"] = [
+                    {"id": cid, "code": code, "title": title, "year_level": yl, "url": url}
+                    for cid, code, title, yl, url in cur.fetchall()
+                ]
 
     return {"resume_skills": sorted(resume_skills), "jobs": jobs, "common_missing": common}
