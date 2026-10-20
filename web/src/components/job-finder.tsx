@@ -36,6 +36,7 @@ export function JobFinder() {
       id: c.id,
       schoolId: s.id,
       label: `${s.name}, ${c.name}`,
+      courses: c.courses,
     })),
   );
 
@@ -195,12 +196,12 @@ function Select({
   anyLabel?: string;
 }) {
   return (
-    <label className="grid gap-1 text-sm font-medium">
+    <label className="grid min-w-0 gap-1 text-sm font-medium">
       {label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-md border border-line bg-background p-2 font-normal"
+        className="w-full min-w-0 truncate rounded-md border border-line bg-background p-2 font-normal"
       >
         <option value="">{anyLabel}</option>
         {options.map(([v, name]) => (
