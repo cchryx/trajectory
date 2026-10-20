@@ -120,7 +120,7 @@ SKILLS = [
     ("NoSQL", "concept", []),
 
     # Cloud and DevOps
-    ("AWS", "cloud", ["Amazon Web Services", "EC2", "S3", "Lambda"]),
+    ("AWS", "cloud", ["Amazon Web Services", "EC2", "S3", "AWS Lambda"]),
     ("Azure", "cloud", ["Microsoft Azure"]),
     ("GCP", "cloud", ["Google Cloud", "Google Cloud Platform"]),
     ("Docker", "cloud", ["containerization"]),
@@ -211,8 +211,23 @@ CASE_SENSITIVE = {
     "Scrum", "PID", "Unreal", "CAD", "MCU", "PCB", "ASIC", "JAX", "dbt",
 }
 
+# Words that are also normal words in course descriptions ("a flask", "airflow",
+# "solidity", "spice"). Only the exact spelling counts.
+CASE_SENSITIVE |= {"Angular", "AngularJS", "Flask", "Airflow", "Solidity", "Tableau", "SPICE"}
+
 # Short names that are only skills in a list, like "Python, Go, Rust".
 LIST_ONLY = {"Go", "C", "R"}
+
+# A skill does not count when one of these words comes right after it.
+# "Angular momentum" is physics, not the Angular framework.
+NOT_FOLLOWED_BY = {
+    "Angular": r"\s+(?:momentum|velocit|acceleration|frequenc|displacement|distribution|resolution|motion"
+    r"|speed|size|diameter|dependence|correlation|variable|width|position|coordinate)",
+}
+
+# Skills we never tag on courses. In course calendars these are people and myths
+# (Franz Kafka, Cassandra) or physics (airflow), not the data tools.
+NOT_ON_COURSES = {"Kafka", "Cassandra", "Airflow"}
 
 # Characters that count as part of a word, so "Java" does not match "JavaScript".
 _EDGE_BEFORE = r"(?<![A-Za-z0-9+#])"
@@ -221,7 +236,7 @@ _EDGE_AFTER = r"(?![A-Za-z0-9+#])"
 _SEP = r"(?:,|/|\(|\)|\band\b|\bor\b|;)"
 
 
-def _pattern(alias):
+def _pattern(alias, name):
     body = re.escape(alias)
     if alias in LIST_ONLY:
         # Must touch a separator on at least one side: "Python, Go" or "Go/Rust".
@@ -229,21 +244,25 @@ def _pattern(alias):
         before, after = r"(?<![A-Za-z0-9+#-])", r"(?![A-Za-z0-9+#-])"
         return re.compile(rf"(?:{_SEP}\s*{body}{after}|{before}{body}\s*{_SEP})")
     flags = 0 if alias in CASE_SENSITIVE else re.IGNORECASE
-    return re.compile(rf"{_EDGE_BEFORE}{body}{_EDGE_AFTER}", flags)
+    not_after = f"(?!{NOT_FOLLOWED_BY[name]})" if name in NOT_FOLLOWED_BY else ""
+    return re.compile(rf"{_EDGE_BEFORE}{body}{_EDGE_AFTER}{not_after}", flags)
 
 
 # Build every pattern once, when the file is imported.
 MATCHERS = [
-    (name, [_pattern(a) for a in [name, *aliases]]) for name, _kind, aliases in SKILLS
+    (name, [_pattern(a, name) for a in [name, *aliases]]) for name, _kind, aliases in SKILLS
 ]
 
 
-def find_skills(text):
-    """Return the sorted list of skill names mentioned in the text."""
+def find_skills(text, course=False):
+    """Return the sorted list of skill names mentioned in the text.
+    Set course=True for course descriptions, which skip NOT_ON_COURSES."""
     # Drop trademark marks, so "Microsoft(R)" does not count as the R language.
     text = (text or "").replace("(R)", " ").replace("(C)", " ")
     return sorted(
-        name for name, patterns in MATCHERS if any(p.search(text) for p in patterns)
+        name
+        for name, patterns in MATCHERS
+        if not (course and name in NOT_ON_COURSES) and any(p.search(text) for p in patterns)
     )
 
 

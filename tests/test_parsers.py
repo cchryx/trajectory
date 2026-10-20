@@ -19,6 +19,15 @@ def test_skills_ignore_normal_words():
     assert find_skills("You will react to feedback and excel at teamwork. Go above and beyond.") == []
 
 
+def test_skills_in_course_descriptions():
+    assert find_skills("Rotational motion and angular momentum of rigid bodies.", course=True) == []
+    assert find_skills("Build web apps with Angular and React.") == ["Angular", "React"]
+    assert find_skills("Titrate the solution in a flask. Airflow and solidity of materials.", course=True) == []
+    assert find_skills("Types, lambda calculus and type inference.", course=True) == []
+    assert find_skills("Readings from Kafka and Borges.", course=True) == []
+    assert find_skills("Stream events with Kafka.") == ["Kafka"]
+
+
 # Prerequisites -------------------------------------------------------------
 
 

@@ -67,7 +67,7 @@ def to_row(school_id, course):
         "id": f"{school_id}:{course['code']}",
         "school_id": school_id,
         "prereq_tree": json.dumps(tree) if tree else None,
-        "skills": find_skills(f"{course['title']}\n{course['description']}"),
+        "skills": find_skills(f"{course['title']}\n{course['description']}", course=True),
         "groups": to_groups(tree),
     }
 
