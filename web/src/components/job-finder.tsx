@@ -20,6 +20,7 @@ export function JobFinder() {
   const [country, setCountry] = useState("");
   const [term, setTerm] = useState("");
   const [category, setCategory] = useState("");
+  const [campus, setCampus] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<MatchResult | null>(null);
@@ -29,6 +30,14 @@ export function JobFinder() {
       .then(setFilters)
       .catch(() => setFilters(null));
   }, []);
+
+  const campuses = (filters?.schools ?? []).flatMap((s) =>
+    s.campuses.map((c) => ({
+      id: c.id,
+      schoolId: s.id,
+      label: `${s.name}, ${c.name}`,
+    })),
+  );
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -54,6 +63,11 @@ export function JobFinder() {
     if (country) form.set("country", country);
     if (term) form.set("term", term);
     if (category) form.set("category", category);
+    const chosen = campuses.find((c) => c.id === campus) ?? campuses[0];
+    if (chosen) {
+      form.set("school", chosen.schoolId);
+      form.set("campus", chosen.id);
+    }
 
     setBusy(true);
     try {
@@ -114,7 +128,7 @@ export function JobFinder() {
           {usePaste ? "Upload a PDF instead" : "Paste text instead"}
         </button>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Select
             label="Location"
             value={country}
@@ -132,6 +146,13 @@ export function JobFinder() {
             value={category}
             onChange={setCategory}
             options={(filters?.categories ?? []).map((c) => [c, c])}
+          />
+          <Select
+            label="Suggest courses from"
+            value={campus}
+            onChange={setCampus}
+            options={campuses.slice(1).map((c) => [c.id, c.label])}
+            anyLabel={campuses[0]?.label ?? "Any"}
           />
         </div>
 
@@ -165,11 +186,13 @@ function Select({
   value,
   onChange,
   options,
+  anyLabel = "Any",
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: [string, string][];
+  anyLabel?: string;
 }) {
   return (
     <label className="grid gap-1 text-sm font-medium">
@@ -179,7 +202,7 @@ function Select({
         onChange={(e) => onChange(e.target.value)}
         className="rounded-md border border-line bg-background p-2 font-normal"
       >
-        <option value="">Any</option>
+        <option value="">{anyLabel}</option>
         {options.map(([v, name]) => (
           <option key={v} value={v}>
             {name}

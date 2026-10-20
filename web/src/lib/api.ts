@@ -40,17 +40,27 @@ export type MatchResult = {
   took_ms: number;
 };
 
+export type Campus = {
+  id: string;
+  name: string;
+  calendar: string | null;
+  courses: number;
+};
+
+export type School = { id: string; name: string; campuses: Campus[] };
+
 export type Filters = {
   countries: { id: string; name: string }[];
   terms: string[];
   categories: string[];
-  schools: { id: string; name: string }[];
+  schools: School[];
   open_postings: number;
   with_description: number;
 };
 
 export type Course = {
   id: string;
+  campus_id: string | null;
   code: string;
   title: string;
   description: string | null;
@@ -81,6 +91,8 @@ export type PrereqTree = string | { and: PrereqTree[] } | { or: PrereqTree[] };
 export type CourseDetail = Course & {
   prereq_tree: PrereqTree | null;
   school_id: string;
+  school_name: string | null;
+  campus_name: string | null;
   exclusions: string | null;
   recommended: string | null;
   calendar_year: string | null;
@@ -111,8 +123,10 @@ export async function matchResume(form: FormData): Promise<MatchResult> {
 export async function searchCourses(
   q: string,
   school = "uoft",
+  campus = "",
 ): Promise<{ results: Course[] }> {
   const params = new URLSearchParams({ q, school, limit: "15" });
+  if (campus) params.set("campus", campus);
   return read(await fetch(`${API_URL}/courses/search?${params}`));
 }
 

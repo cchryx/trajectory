@@ -3,35 +3,61 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
-import { type Course, searchCourses } from "@/lib/api";
+import { type Course, getFilters, type School, searchCourses } from "@/lib/api";
 
 export function CourseSearch() {
   const router = useRouter();
   const params = useSearchParams();
   const q = params.get("q") ?? "";
+  const campusParam = params.get("campus") ?? "";
   const [draft, setDraft] = useState(q);
+  const [schools, setSchools] = useState<School[]>([]);
   const [results, setResults] = useState<Course[] | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    getFilters()
+      .then((f) => setSchools(f.schools))
+      .catch(() => setSchools([]));
+  }, []);
+
+  // The chosen campus, or the first one we have courses for.
+  const campuses = schools.flatMap((s) =>
+    s.campuses.map((c) => ({ ...c, schoolId: s.id, schoolName: s.name })),
+  );
+  const current =
+    campuses.find((c) => c.id === campusParam) ??
+    campuses.find((c) => c.courses > 0) ??
+    campuses[0];
+  const campusId = current?.id ?? "";
+  const schoolId = current?.schoolId ?? "";
+
+  useEffect(() => {
     setDraft(q);
-    if (q.trim().length < 2) {
+    if (q.trim().length < 2 || !campusId) {
       setResults(null);
       return;
     }
     let live = true;
     setError("");
-    searchCourses(q)
+    searchCourses(q, schoolId, campusId)
       .then((r) => live && setResults(r.results))
       .catch((e) => live && setError(e.message));
     return () => {
       live = false;
     };
-  }, [q]);
+  }, [q, schoolId, campusId]);
+
+  function go(nextQ: string, nextCampus: string) {
+    const p = new URLSearchParams();
+    if (nextQ) p.set("q", nextQ);
+    if (nextCampus) p.set("campus", nextCampus);
+    router.push(`/courses?${p}`);
+  }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    router.push(`/courses?q=${encodeURIComponent(draft.trim())}`);
+    go(draft.trim(), current?.id ?? "");
   }
 
   return (
@@ -42,9 +68,50 @@ export function CourseSearch() {
         </h1>
         <p className="max-w-2xl text-muted">
           Describe what you want to learn in plain words, or type a course code.
-          Starting with UofT Arts &amp; Science (CSC, MAT, STA).
         </p>
       </section>
+
+      {schools.length > 0 && (
+        <section
+          aria-label="Choose a school and campus"
+          className="grid gap-3 sm:grid-cols-2"
+        >
+          {schools.map((s) => (
+            <div
+              key={s.id}
+              className="grid gap-2 rounded-lg border border-line bg-surface p-4"
+            >
+              <h2 className="font-bold">{s.name}</h2>
+              <div className="flex flex-wrap gap-2">
+                {s.campuses.map((c) => {
+                  const active = c.id === current?.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => go(q, c.id)}
+                      aria-pressed={active}
+                      className={`rounded-md border px-3 py-1.5 text-left text-sm ${
+                        active
+                          ? "border-accent bg-accent-soft text-accent"
+                          : "border-line hover:border-accent"
+                      }`}
+                    >
+                      <span className="font-semibold">{c.name}</span>
+                      <span className="block text-xs text-muted">
+                        {c.calendar ? `${c.calendar} · ` : ""}
+                        {c.courses} courses
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted">More campuses coming soon.</p>
+            </div>
+          ))}
+        </section>
+      )}
+
       <form onSubmit={onSubmit} className="flex gap-2">
         <input
           value={draft}
@@ -60,6 +127,11 @@ export function CourseSearch() {
           Search
         </button>
       </form>
+      {current && (
+        <p className="-mt-3 text-sm text-muted">
+          Searching {current.schoolName}, {current.name} campus.
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-sm text-red-600">
           {error}

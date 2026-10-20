@@ -52,6 +52,12 @@ export function CourseDetail() {
         Back to course search
       </Link>
       <section className="grid gap-2">
+        {course.school_name && (
+          <p className="text-sm font-medium text-accent">
+            {course.school_name}
+            {course.campus_name ? ` · ${course.campus_name} campus` : ""}
+          </p>
+        )}
         <p className="font-mono text-sm text-muted">
           {course.code} · year {course.year_level} · {course.credits} credit
           {course.calendar_year ? ` · ${course.calendar_year} calendar` : ""}

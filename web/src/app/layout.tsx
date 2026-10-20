@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 
+const INKFERENCE_URL =
+  "https://inkference.app/project/b7b0d6e4-ad5d-4b96-8c60-00e686021693";
+
 export const metadata: Metadata = {
   title: "Trajectory",
   description:
@@ -26,12 +29,31 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             >
               Courses
             </Link>
+            <a
+              href={INKFERENCE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto whitespace-nowrap rounded-full border border-line px-3 py-1 text-xs text-muted hover:border-accent hover:text-accent"
+            >
+              Built by <span className="font-semibold">Chris Chen</span>
+              <span className="hidden sm:inline">
+                {" "}
+                · see the project on Inkference
+              </span>
+            </a>
           </nav>
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
           {children}
         </main>
         <footer className="border-t border-line px-4 py-6 text-center text-xs text-muted">
+          <p className="mb-2">
+            Trajectory is built by Chris Chen. Follow the build on{" "}
+            <a className="underline" href={INKFERENCE_URL}>
+              Inkference
+            </a>
+            .
+          </p>
           Job data from the{" "}
           <a
             className="underline"
