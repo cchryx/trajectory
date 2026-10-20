@@ -1,0 +1,11 @@
+name: Idea
+description: A new feature, a new job source, or a better way to do something.
+labels: ["idea"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What should change, and who it helps.
+    validations:
+      required: true

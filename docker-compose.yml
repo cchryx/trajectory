@@ -1,0 +1,23 @@
+# A local database for development. You do not need Supabase to work on Trajectory.
+#   docker compose up -d
+#   DATABASE_URL=postgresql://postgres:pg@localhost:5433/trajectory
+# The SQL files in db/ run in order the first time the database starts.
+# To start fresh: docker compose down -v
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_PASSWORD: pg
+      POSTGRES_DB: trajectory
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:
