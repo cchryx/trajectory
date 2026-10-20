@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
+/* Colors match the Trajectory banner: deep green, mint and gold. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #f6f8f6;
+  --surface: #ffffff;
+  --foreground: #16201c;
+  --muted: #56645e;
+  --line: #dce2de;
+  --accent: #0b7a62;
+  --accent-soft: #e1f2ec;
+  --gold: #a16207;
+  --gold-soft: #fdf3dc;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #101614;
+    --surface: #17201d;
+    --foreground: #e6eeea;
+    --muted: #9baaa3;
+    --line: #2a3632;
+    --accent: #7cc3a5;
+    --accent-soft: #15332b;
+    --gold: #d9bd73;
+    --gold-soft: #3a2a12;
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
