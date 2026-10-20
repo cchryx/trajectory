@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
+import { Select } from "@/components/select";
 import { type Course, getFilters, type School, searchCourses } from "@/lib/api";
 
 const PARAMS = ["q", "campus", "faculty", "breadth", "year"] as const;
@@ -90,9 +91,6 @@ export function CourseSearch() {
     go({ q: draft.trim() });
   }
 
-  const selectClass =
-    "w-full min-w-0 truncate rounded-md border border-line bg-background p-2 font-normal";
-
   return (
     <div className="grid gap-6">
       <section className="grid gap-2">
@@ -145,52 +143,34 @@ export function CourseSearch() {
           </div>
 
           {current && current.schoolId === s.id && (
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="grid min-w-0 gap-1 text-sm font-medium">
-                Faculty
-                <select
-                  value={faculty}
-                  onChange={(e) => go({ faculty: e.target.value })}
-                  className={selectClass}
-                >
-                  <option value="">All faculties</option>
-                  {current.faculties.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name} ({f.courses})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid min-w-0 gap-1 text-sm font-medium">
-                Breadth requirement
-                <select
-                  value={breadth}
-                  onChange={(e) => go({ breadth: e.target.value })}
-                  className={selectClass}
-                >
-                  <option value="">Any</option>
-                  {current.breadth.map((b) => (
-                    <option key={b.name} value={b.name}>
-                      {b.name} ({b.courses})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid min-w-0 gap-1 text-sm font-medium">
-                Year
-                <select
-                  value={year}
-                  onChange={(e) => go({ year: e.target.value })}
-                  className={selectClass}
-                >
-                  <option value="">Any</option>
-                  {["1", "2", "3", "4"].map((y) => (
-                    <option key={y} value={y}>
-                      Year {y}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Select
+                label="Faculty"
+                value={faculty}
+                onChange={(v) => go({ faculty: v })}
+                anyLabel="All faculties"
+                options={current.faculties.map((f) => [
+                  f.id,
+                  `${f.name} (${f.courses})`,
+                ])}
+              />
+              <Select
+                label="Breadth requirement"
+                value={breadth}
+                onChange={(v) => go({ breadth: v })}
+                anyLabel="Any"
+                options={current.breadth.map((b) => [
+                  b.name,
+                  `${b.name} (${b.courses})`,
+                ])}
+              />
+              <Select
+                label="Year"
+                value={year}
+                onChange={(v) => go({ year: v })}
+                anyLabel="Any"
+                options={["1", "2", "3", "4"].map((y) => [y, `Year ${y}`])}
+              />
             </div>
           )}
         </section>

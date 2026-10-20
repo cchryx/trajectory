@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
+import { Select } from "@/components/select";
 import {
   type Filters,
   getFilters,
@@ -129,21 +130,24 @@ export function JobFinder() {
           {usePaste ? "Upload a PDF instead" : "Paste text instead"}
         </button>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
             label="Location"
+            anyLabel="Any"
             value={country}
             onChange={setCountry}
             options={(filters?.countries ?? []).map((c) => [c.id, c.name])}
           />
           <Select
             label="Term"
+            anyLabel="Any"
             value={term}
             onChange={setTerm}
             options={(filters?.terms ?? []).map((t) => [t, t])}
           />
           <Select
             label="Role type"
+            anyLabel="Any"
             value={category}
             onChange={setCategory}
             options={(filters?.categories ?? []).map((c) => [c, c])}
@@ -179,38 +183,6 @@ export function JobFinder() {
 
       {result && <Results result={result} />}
     </div>
-  );
-}
-
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-  anyLabel = "Any",
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: [string, string][];
-  anyLabel?: string;
-}) {
-  return (
-    <label className="grid min-w-0 gap-1 text-sm font-medium">
-      {label}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full min-w-0 truncate rounded-md border border-line bg-background p-2 font-normal"
-      >
-        <option value="">{anyLabel}</option>
-        {options.map(([v, name]) => (
-          <option key={v} value={v}>
-            {name}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 
