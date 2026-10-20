@@ -124,3 +124,15 @@ def test_campuses_and_faculties(client):
     course = client.get("/courses/uoft:ECE314H1").json()
     assert course["campus_name"] == "St. George"
     assert course["faculty_name"] == "Faculty of Applied Science & Engineering"
+
+
+def test_planner_courses(client):
+    data = client.get("/planner/courses", params={"ids": "uoft:CSC207H1,uoft:CSC148H1,uoft:NOPE"}).json()
+    assert data["timetable_year"] == "2026-2027"
+    c207, c148 = data["courses"]
+    assert c207["code"] == "CSC207H1" and c207["terms_offered"] == ["F"]
+    assert [s["name"] for s in c207["offerings"]["2026-2027"]["F"]] == ["LEC0101", "LEC0201"]
+    assert set(c148["offerings"]["2026-2027"]) == {"F", "S"}
+    assert "CSC111H1" in c148["exclusion_codes"]
+    assert c207["prereq_tree"] == {"or": ["CSC148H1", "CSC148H5", "CSCA48H3", "CSC111H1"]}
+

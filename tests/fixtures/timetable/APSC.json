@@ -1,0 +1,50 @@
+{
+ "sessions": [
+  "20269",
+  "20271",
+  "20269-20271"
+ ],
+ "courses": [
+  {
+   "id": "ECE314H1F",
+   "name": "ECE314H1",
+   "code": "ECE314H1",
+   "sectionCode": "F",
+   "campus": "St. George",
+   "sessions": [
+    "20269"
+   ],
+   "sections": [
+    {
+     "name": "LEC0101",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "0101",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 2,
+        "millisofday": 32400000
+       },
+       "end": {
+        "day": 2,
+        "millisofday": 39600000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    }
+   ],
+   "maxCredit": 0.5,
+   "minCredit": 0.5
+  }
+ ]
+}

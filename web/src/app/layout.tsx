@@ -29,11 +29,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             >
               Courses
             </Link>
+            <Link
+              href="/planner"
+              className="text-sm text-muted hover:text-foreground"
+            >
+              Planner
+            </Link>
             <a
               href={INKFERENCE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-auto whitespace-nowrap rounded-full border border-line px-3 py-1 text-xs text-muted hover:border-accent hover:text-accent"
+              className="ml-auto hidden whitespace-nowrap rounded-full sm:inline-block border border-line px-3 py-1 text-xs text-muted hover:border-accent hover:text-accent"
             >
               Built by <span className="font-semibold">Chris Chen</span>
               <span className="hidden sm:inline">

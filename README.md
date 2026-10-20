@@ -10,6 +10,7 @@ Upload your resume. Trajectory ranks open internships by fit and lists the skill
 |---|---|---|
 | 1 | Job finder: resume upload, fit score, missing skills | Built |
 | 2 | Course finder: UofT courses, hybrid search, prerequisite graph | Built |
+| 2b | Course planner: plan each year, terms, section times, clash checks | Built |
 | 3 | Live on Render | To do (steps below) |
 
 ## How it works
@@ -21,6 +22,8 @@ Upload your resume. Trajectory ranks open internships by fit and lists the skill
 5. When you upload a resume, the API turns it into a vector and finds the 50 closest postings.
 6. Each one is scored: `fit = 0.6 × meaning match + 0.4 × skill overlap`. The top 20 are returned with missing skills and courses that teach them.
 7. Course search mixes keyword search and meaning search, merged with reciprocal rank fusion.
+8. A weekly job loads the UofT Timetable Builder: which term each course runs in (Fall, Winter or full year) and each section's times.
+9. The planner page checks your plan: prerequisites done in an earlier term, the right term, time clashes, exclusions and credit load. The plan is saved in the page link, not in the database.
 
 Your resume is read in memory and never saved or logged. Only daily counts of searches are stored.
 
@@ -29,7 +32,7 @@ Your resume is read in memory and never saved or logged. Only daily counts of se
 ```
 db/          SQL for the database tables (run in order)
 trajectory/  Shared Python code: skills, vectors, prerequisites, matching, course search
-loaders/     Jobs that fill the database (run daily and monthly by GitHub Actions)
+loaders/     Jobs that fill the database (run daily, weekly and monthly by GitHub Actions)
   schools/   One course scraper per school
 api/         FastAPI matching API
 web/         Next.js website
@@ -47,8 +50,9 @@ Do these once, in order.
 2. Paste and run `db/002_trajectory.sql`. It adds 3 columns the loaders need, the course tables and the indexes.
 3. Paste and run `db/003_campuses.sql`. It adds campuses.
 4. Paste and run `db/004_faculties.sql`. It adds faculties and breadth requirements.
+5. Paste and run `db/005_timetable.sql`. It adds terms and section times for the planner.
 
-All three files are safe to run twice.
+All these files are safe to run twice.
 
 ### 2. Rename the GitHub repo (optional)
 
@@ -61,6 +65,7 @@ All three files are safe to run twice.
 1. Push the code to GitHub.
 2. Open Actions > Daily job refresh > Run workflow. This loads jobs and makes the vectors. The first run downloads the model (about 70 MB).
 3. Open Actions > Course refresh > Run workflow. This loads every UofT course from all 4 calendars. It takes about 6 minutes, because it waits 1 second between pages.
+4. Open Actions > Timetable refresh > Run workflow. This loads terms and section times. It takes about 7 minutes. It runs again every Monday.
 
 ### 4. Deploy on Render
 
@@ -137,7 +142,30 @@ Courses are grouped as school > campus > faculty. Each faculty has its own calen
 
 Then run `python -m loaders.load_courses --faculty <id>`. No table or search changes are needed.
 
-No table or search changes are needed.
+## When UofT changes their website
+
+UofT can change their calendar or timetable site at any time. The loaders are built to fail safely.
+
+What the timetable loader does:
+
+1. It checks every response has the fields it needs. If a field is missing, it stops with `TimetableChanged`.
+2. It compares the course count to the last run. If a division drops below half, it refuses to save.
+3. When it stops, the old data stays in the database. The website keeps working.
+4. The GitHub Action fails. GitHub emails you.
+
+What to do when you get that email:
+
+1. Open the failed run in Actions and read the error. It names the missing field or the drop.
+2. Open the UofT site in your browser. Press F12 > Network and find the new request.
+3. Fix the code:
+   - Timetable: `loaders/schools/uoft_timetable.py`. The API address, request body and field names are at the top.
+   - Calendar: `loaders/schools/uoft.py`. The page addresses and HTML class names are in `CALENDARS` and `parse_page`.
+4. Save one real response as a test file in `tests/fixtures/` and run the tests.
+5. Run the Action again.
+
+If UofT really did remove many courses, run Timetable refresh with `min_ratio` set to `0`. That turns the drop check off for one run.
+
+If the timetable is down for a long time, the planner still works. It shows prerequisites and uses the last saved terms and times.
 
 ## API
 
@@ -147,6 +175,7 @@ No table or search changes are needed.
 | GET | `/filters` | Terms, role types, schools and campuses for the menus |
 | POST | `/match` | Form data: `file` (PDF, up to 2 MB) or `text`, plus optional `country`, `term`, `category`, `school` |
 | GET | `/courses/search?q=...&campus=uoft-stg` | Course search. Optional: `faculty`, `breadth`, `year`, `mode`. With no `q`, lists every course that matches the filters |
+| GET | `/planner/courses?ids=uoft:CSC148H1,uoft:CSC207H1` | Planner details: prerequisites, exclusions, terms and section times |
 | GET | `/courses/{id}` | One course, like `uoft:CSC207H1`, with its prerequisite graph and what it unlocks |
 
 ## Credits

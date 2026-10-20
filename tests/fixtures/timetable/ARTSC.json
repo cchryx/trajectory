@@ -1,0 +1,411 @@
+{
+ "sessions": [
+  "20269",
+  "20271",
+  "20269-20271"
+ ],
+ "courses": [
+  {
+   "id": "CSC148H1F",
+   "name": "CSC148H1",
+   "code": "CSC148H1",
+   "sectionCode": "F",
+   "campus": "St. George",
+   "sessions": [
+    "20269"
+   ],
+   "sections": [
+    {
+     "name": "LEC0101",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "0101",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 1,
+        "millisofday": 36000000
+       },
+       "end": {
+        "day": 1,
+        "millisofday": 39600000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      },
+      {
+       "start": {
+        "day": 3,
+        "millisofday": 36000000
+       },
+       "end": {
+        "day": 3,
+        "millisofday": 39600000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      },
+      {
+       "start": {
+        "day": 5,
+        "millisofday": 36000000
+       },
+       "end": {
+        "day": 5,
+        "millisofday": 39600000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    },
+    {
+     "name": "LEC0201",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "0201",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 2,
+        "millisofday": 50400000
+       },
+       "end": {
+        "day": 2,
+        "millisofday": 54000000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      },
+      {
+       "start": {
+        "day": 4,
+        "millisofday": 50400000
+       },
+       "end": {
+        "day": 4,
+        "millisofday": 57600000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    },
+    {
+     "name": "TUT0101",
+     "type": "Tutorial",
+     "teachMethod": "TUT",
+     "sectionNumber": "0101",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 4,
+        "millisofday": 32400000
+       },
+       "end": {
+        "day": 4,
+        "millisofday": 36000000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    }
+   ],
+   "maxCredit": 0.5,
+   "minCredit": 0.5
+  },
+  {
+   "id": "CSC148H1S",
+   "name": "CSC148H1",
+   "code": "CSC148H1",
+   "sectionCode": "S",
+   "campus": "St. George",
+   "sessions": [
+    "20271"
+   ],
+   "sections": [
+    {
+     "name": "LEC5101",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "5101",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 2,
+        "millisofday": 64800000
+       },
+       "end": {
+        "day": 2,
+        "millisofday": 75600000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20271",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    }
+   ],
+   "maxCredit": 0.5,
+   "minCredit": 0.5
+  },
+  {
+   "id": "CSC207H1F",
+   "name": "CSC207H1",
+   "code": "CSC207H1",
+   "sectionCode": "F",
+   "campus": "St. George",
+   "sessions": [
+    "20269"
+   ],
+   "sections": [
+    {
+     "name": "LEC0101",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "0101",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 1,
+        "millisofday": 36000000
+       },
+       "end": {
+        "day": 1,
+        "millisofday": 43200000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    },
+    {
+     "name": "LEC0201",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "0201",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 3,
+        "millisofday": 46800000
+       },
+       "end": {
+        "day": 3,
+        "millisofday": 54000000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    },
+    {
+     "name": "LEC9999",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "9999",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 5,
+        "millisofday": 32400000
+       },
+       "end": {
+        "day": 5,
+        "millisofday": 36000000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "Y",
+     "deliveryModes": []
+    }
+   ],
+   "maxCredit": 0.5,
+   "minCredit": 0.5
+  },
+  {
+   "id": "CSC263H1S",
+   "name": "CSC263H1",
+   "code": "CSC263H1",
+   "sectionCode": "S",
+   "campus": "St. George",
+   "sessions": [
+    "20271"
+   ],
+   "sections": [
+    {
+     "name": "LEC0101",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "0101",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 2,
+        "millisofday": 39600000
+       },
+       "end": {
+        "day": 2,
+        "millisofday": 46800000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20271",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    }
+   ],
+   "maxCredit": 0.5,
+   "minCredit": 0.5
+  },
+  {
+   "id": "CSC311H1S",
+   "name": "CSC311H1",
+   "code": "CSC311H1",
+   "sectionCode": "S",
+   "campus": "St. George",
+   "sessions": [
+    "20271"
+   ],
+   "sections": [
+    {
+     "name": "LEC0101",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "0101",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 2,
+        "millisofday": 43200000
+       },
+       "end": {
+        "day": 2,
+        "millisofday": 50400000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20271",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    }
+   ],
+   "maxCredit": 0.5,
+   "minCredit": 0.5
+  },
+  {
+   "id": "ZZZ999H1F",
+   "name": "ZZZ999H1",
+   "code": "ZZZ999H1",
+   "sectionCode": "F",
+   "campus": "St. George",
+   "sessions": [
+    "20269"
+   ],
+   "sections": [
+    {
+     "name": "LEC0101",
+     "type": "Lecture",
+     "teachMethod": "LEC",
+     "sectionNumber": "0101",
+     "meetingTimes": [
+      {
+       "start": {
+        "day": 1,
+        "millisofday": 32400000
+       },
+       "end": {
+        "day": 1,
+        "millisofday": 36000000
+       },
+       "building": {
+        "buildingCode": "BA"
+       },
+       "sessionCode": "20269",
+       "repetition": "WEEKLY",
+       "repetitionTime": "ONCE_A_WEEK"
+      }
+     ],
+     "instructors": [],
+     "cancelInd": "N",
+     "deliveryModes": []
+    }
+   ],
+   "maxCredit": 0.5,
+   "minCredit": 0.5
+  }
+ ]
+}

@@ -33,6 +33,7 @@ jobs:
                   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/002_trajectory.sql
                   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/003_campuses.sql
                   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/004_faculties.sql
+                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/005_timetable.sql
             - name: Load test data
               run: |
                   python -m loaders.load_postings
@@ -44,6 +45,7 @@ jobs:
                   cp tests/fixtures/uoft_utm_page.html .cache/uoft/uoft-utm/page-0.html
                   cp tests/fixtures/uoft_utsc_page.html .cache/uoft/uoft-utsc/page-0.html
                   python -m loaders.load_courses
+                  python -m loaders.load_timetable --division ARTSC,APSC --fixture tests/fixtures/timetable
             - run: pytest -q
 
     web:
