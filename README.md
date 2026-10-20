@@ -17,7 +17,7 @@ Upload your resume. Trajectory ranks open internships by fit and lists the skill
 1. A daily job pulls open internships for every term from the [SimplifyJobs list](https://github.com/SimplifyJobs/Summer2027-Internships) into Supabase.
 2. It fetches full descriptions from Greenhouse, Lever and Ashby job boards where they are public.
 3. Each posting gets skill tags and a 384-number vector (fastembed, `BAAI/bge-small-en-v1.5`).
-4. A monthly job loads UofT Arts & Science courses (CSC, MAT, STA to start). Prerequisites are saved in one shared and/or format, so any school can be added.
+4. A monthly job loads courses by school and campus. It starts with University of Toronto, St. George campus (Arts & Science: CSC, MAT, STA). Prerequisites are saved in one shared and/or format, so any school can be added.
 5. When you upload a resume, the API turns it into a vector and finds the 50 closest postings.
 6. Each one is scored: `fit = 0.6 × meaning match + 0.4 × skill overlap`. The top 20 are returned with missing skills and courses that teach them.
 7. Course search mixes keyword search and meaning search, merged with reciprocal rank fusion.
@@ -44,7 +44,10 @@ Do these once, in order.
 ### 1. Update the database
 
 1. Open Supabase > SQL Editor.
-2. Paste and run `db/002_trajectory.sql`. It adds 3 columns the loaders need, the course tables and the indexes. It is safe to run twice.
+2. Paste and run `db/002_trajectory.sql`. It adds 3 columns the loaders need, the course tables and the indexes.
+3. Paste and run `db/003_campuses.sql`. It adds campuses, so courses are grouped by school and campus.
+
+Both files are safe to run twice.
 
 ### 2. Rename the GitHub repo (optional)
 
@@ -116,11 +119,13 @@ TEST_DATABASE_URL=postgresql://... EMBEDDER=hash pytest
 
 `EMBEDDER=hash` uses fake vectors, so tests need no model download. GitHub Actions runs everything on each push (see `.github/workflows/tests.yml`).
 
-## Add a university
+## Add a university or campus
 
-1. Add a module in `loaders/schools/`, like `waterloo.py`, with `SCHOOL` and `fetch_courses()`. It must return the shared course shape (see `loaders/schools/__init__.py`).
-2. List it in `SCHOOLS` in `loaders/schools/__init__.py`.
-3. Run `python -m loaders.load_courses --school waterloo --subjects CS,MATH`.
+Courses are grouped by school, then campus. Each campus calendar gets its own module.
+
+1. Add a module in `loaders/schools/`, like `utm.py` (UofT Mississauga) or `waterloo.py`, with `SCHOOL`, `CAMPUS` and `fetch_courses()`. It must return the shared course shape (see `loaders/schools/__init__.py`). Campuses of one school share the same `SCHOOL`.
+2. List it in `CAMPUSES` in `loaders/schools/__init__.py`.
+3. Run `python -m loaders.load_courses --campus uoft-utm --subjects CSC,MAT`.
 
 No table or search changes are needed.
 
@@ -129,9 +134,9 @@ No table or search changes are needed.
 | Method | Path | What it does |
 |---|---|---|
 | GET | `/health` | Health check |
-| GET | `/filters` | Terms, role types and counts for the filter menus |
+| GET | `/filters` | Terms, role types, schools and campuses for the menus |
 | POST | `/match` | Form data: `file` (PDF, up to 2 MB) or `text`, plus optional `country`, `term`, `category`, `school` |
-| GET | `/courses/search?q=...&mode=hybrid` | Course search. `mode` is `hybrid`, `keyword` or `vector` |
+| GET | `/courses/search?q=...&campus=uoft-stg` | Course search. Optional `mode`: `hybrid`, `keyword` or `vector` |
 | GET | `/courses/{id}` | One course, like `uoft:CSC207H1`, with its prerequisite graph and what it unlocks |
 
 ## Credits

@@ -86,8 +86,17 @@ def filters():
         categories = [r[0] for r in cur.fetchall()]
         cur.execute("select count(*), count(description) from postings where active")
         total, described = cur.fetchone()
-        cur.execute("select id, name from schools order by name")
-        schools = [{"id": i, "name": n} for i, n in cur.fetchall()]
+        cur.execute(
+            "select s.id, s.name, c.id, c.name, c.calendar, count(co.id) "
+            "from schools s join campuses c on c.school_id = s.id "
+            "left join courses co on co.campus_id = c.id and co.active "
+            "group by s.id, s.name, c.id, c.name, c.calendar order by s.name, c.name"
+        )
+        schools: dict[str, dict] = {}
+        for sid, sname, cid, cname, calendar, n in cur.fetchall():
+            school = schools.setdefault(sid, {"id": sid, "name": sname, "campuses": []})
+            school["campuses"].append({"id": cid, "name": cname, "calendar": calendar, "courses": n})
+        schools = list(schools.values())
     return {
         "countries": [{"id": "CA", "name": "Canada"}, {"id": "US", "name": "United States"}, {"id": "other", "name": "Other"}],
         "terms": terms,
@@ -107,6 +116,7 @@ def match_resume(
     term: str | None = Form(None),
     category: str | None = Form(None),
     school: str = Form("uoft"),
+    campus: str | None = Form(None),
 ):
     """Rank open internships for one resume. Send a PDF as `file`, or plain text as `text`."""
     _check_rate(request)
@@ -132,7 +142,7 @@ def match_resume(
 
     with pool.connection() as conn:
         result = match(conn, resume, country=country or None, term=term or None,
-                       category=category or None, school=school or None)
+                       category=category or None, school=school or None, campus=campus or None)
     del resume
     _count("match")
     result["took_ms"] = round((time.perf_counter() - started) * 1000)
@@ -143,11 +153,12 @@ def match_resume(
 def course_search(
     q: str = Query(..., min_length=2, max_length=300),
     school: str = "uoft",
+    campus: str | None = None,
     mode: str = Query("hybrid", pattern="^(" + "|".join(MODES) + ")$"),
     limit: int = Query(10, ge=1, le=50),
 ):
     with pool.connection() as conn:
-        results = search(conn, q, school=school, mode=mode, limit=limit)
+        results = search(conn, q, school=school, mode=mode, limit=limit, campus=campus or None)
     _count("course_search")
     return {"query": q, "mode": mode, "results": results}
 

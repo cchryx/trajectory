@@ -32,5 +32,5 @@ jobs:
                   path: models
                   key: fastembed-bge-small-en-v1.5
 
-            - name: Load UofT courses
-              run: python -m loaders.load_courses --school uoft --subjects "${{ inputs.subjects || 'CSC,MAT,STA' }}"
+            - name: Load UofT St. George courses
+              run: python -m loaders.load_courses --campus uoft-stg --subjects "${{ inputs.subjects || 'CSC,MAT,STA' }}"

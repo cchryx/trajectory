@@ -1,4 +1,4 @@
-"""University of Toronto, Faculty of Arts & Science calendar.
+"""University of Toronto, St. George campus: Faculty of Arts & Science calendar.
 
 Reads the public course search at artsci.calendar.utoronto.ca, one subject at a time.
 robots.txt allows /search-courses. We send at most 1 request per second and cache
@@ -15,7 +15,8 @@ from urllib.robotparser import RobotFileParser
 import requests
 from bs4 import BeautifulSoup
 
-SCHOOL = {"id": "uoft", "name": "University of Toronto (Arts & Science)", "credit_unit": "FCE"}
+SCHOOL = {"id": "uoft", "name": "University of Toronto", "credit_unit": "FCE"}
+CAMPUS = {"id": "uoft-stg", "school_id": "uoft", "name": "St. George", "calendar": "Faculty of Arts & Science"}
 
 BASE = "https://artsci.calendar.utoronto.ca"
 SEARCH = BASE + "/search-courses"
@@ -80,6 +81,7 @@ def parse_page(html, year=None):
             "terms_offered": None,  # the calendar does not list terms
             "calendar_year": year or calendar_year(),
             "url": f"{BASE}/course/{code.lower()}",
+            "campus_id": CAMPUS["id"],
         }
         for field in row.select(".views-field"):
             for cls in field.get("class", []):

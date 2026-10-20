@@ -59,6 +59,7 @@ COURSES_FOR_SKILLS_SQL = """
 select id, code, title, year_level, url, skills
 from courses
 where active and school_id = %(school)s and skills && %(skills)s
+  and (%(campus)s::text is null or campus_id = %(campus)s)
 order by year_level, code
 """
 
@@ -75,7 +76,7 @@ def score(similarity, posting_skills, resume_skills):
     return max(0.0, min(1.0, fit)), matched, missing
 
 
-def match(conn, resume_text, country=None, term=None, category=None, school="uoft"):
+def match(conn, resume_text, country=None, term=None, category=None, school="uoft", campus=None):
     """Rank postings for one resume. Returns a dict ready to send as JSON."""
     resume_skills = set(find_skills(resume_text))
     vec = embed_passages([resume_text])[0]
@@ -109,7 +110,7 @@ def match(conn, resume_text, country=None, term=None, category=None, school="uof
     common = [{"skill": s, "jobs": n, "courses": []} for s, n in counts.most_common(COMMON)]
     if common and school:
         with conn.cursor() as cur:
-            cur.execute(COURSES_FOR_SKILLS_SQL, {"school": school, "skills": [c["skill"] for c in common]})
+            cur.execute(COURSES_FOR_SKILLS_SQL, {"school": school, "campus": campus, "skills": [c["skill"] for c in common]})
             courses = cur.fetchall()
         for item in common:
             item["courses"] = [

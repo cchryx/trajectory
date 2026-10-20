@@ -5,15 +5,15 @@ every school: it saves courses, tags skills, turns prerequisites into the shared
 format, builds the prereqs table and embeds descriptions.
 
 Run from the repo root:
-    python -m loaders.load_courses                      # UofT: CSC, MAT, STA
-    python -m loaders.load_courses --subjects CSC,MAT,STA,ECO
+    python -m loaders.load_courses                      # UofT St. George: CSC, MAT, STA
+    python -m loaders.load_courses --campus uoft-stg --subjects CSC,MAT,STA,ECO
 """
 
 import argparse
 import hashlib
 import json
 
-from loaders.schools import SCHOOLS
+from loaders.schools import CAMPUSES
 from trajectory.db import connect
 from trajectory.embed import embed_passages, to_pg
 from trajectory.prereqs import parse, to_groups
@@ -24,15 +24,20 @@ insert into schools (id, name, credit_unit) values (%(id)s, %(name)s, %(credit_u
 on conflict (id) do update set name = excluded.name, credit_unit = excluded.credit_unit
 """
 
+SAVE_CAMPUS_SQL = """
+insert into campuses (id, school_id, name, calendar) values (%(id)s, %(school_id)s, %(name)s, %(calendar)s)
+on conflict (id) do update set name = excluded.name, calendar = excluded.calendar
+"""
+
 SAVE_COURSE_SQL = """
-insert into courses (id, school_id, code, title, description, year_level, credits, terms_offered,
+insert into courses (id, school_id, campus_id, code, title, description, year_level, credits, terms_offered,
                      calendar_year, url, prereq_text, prereq_tree, exclusions, recommended, skills,
                      active, updated_at)
-values (%(id)s, %(school_id)s, %(code)s, %(title)s, %(description)s, %(year_level)s, %(credits)s,
+values (%(id)s, %(school_id)s, %(campus_id)s, %(code)s, %(title)s, %(description)s, %(year_level)s, %(credits)s,
         %(terms_offered)s, %(calendar_year)s, %(url)s, %(prereq_text)s, %(prereq_tree)s,
         %(exclusions)s, %(recommended)s, %(skills)s, true, now())
 on conflict (id) do update set
-  title = excluded.title, description = excluded.description, year_level = excluded.year_level,
+  campus_id = excluded.campus_id, title = excluded.title, description = excluded.description, year_level = excluded.year_level,
   credits = excluded.credits, terms_offered = excluded.terms_offered,
   calendar_year = excluded.calendar_year, url = excluded.url, prereq_text = excluded.prereq_text,
   prereq_tree = excluded.prereq_tree, exclusions = excluded.exclusions,
@@ -61,30 +66,32 @@ def to_row(school_id, course):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--school", default="uoft", choices=sorted(SCHOOLS))
+    parser.add_argument("--campus", default="uoft-stg", choices=sorted(CAMPUSES))
     parser.add_argument("--subjects", default="CSC,MAT,STA")
     parser.add_argument("--cache", default=".cache")
     args = parser.parse_args()
 
-    school = SCHOOLS[args.school]
+    school = CAMPUSES[args.campus]
     school_id = school.SCHOOL["id"]
+    campus = school.CAMPUS
     subjects = [s.strip().upper() for s in args.subjects.split(",") if s.strip()]
 
-    print(f"Fetching {school_id} courses for {', '.join(subjects)}...")
+    print(f"Fetching {school.SCHOOL['name']}, {campus['name']} courses for {', '.join(subjects)}...")
     courses = school.fetch_courses(subjects, args.cache)
     rows = [to_row(school_id, c) for c in courses]
     print(f"Fetched {len(rows)} courses.")
 
     with connect() as conn, conn.cursor() as cur:
         cur.execute(SAVE_SCHOOL_SQL, school.SCHOOL)
+        cur.execute(SAVE_CAMPUS_SQL, campus)
         cur.executemany(SAVE_COURSE_SQL, rows)
 
         # Courses in these subjects that left the calendar are kept but hidden.
         ids = [r["id"] for r in rows]
         cur.execute(
-            "update courses set active = false where school_id = %s and active "
+            "update courses set active = false where campus_id = %s and active "
             "and left(code, 3) = any(%s) and not (id = any(%s))",
-            (school_id, subjects, ids),
+            (campus["id"], subjects, ids),
         )
         hidden = cur.rowcount
 

@@ -31,6 +31,7 @@ jobs:
               run: |
                   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/001_jobs.sql
                   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/002_trajectory.sql
+                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/003_campuses.sql
             - name: Load test data
               run: |
                   python -m loaders.load_postings

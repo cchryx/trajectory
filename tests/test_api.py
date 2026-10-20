@@ -99,3 +99,19 @@ def test_course_search_and_detail(client):
     assert {"uoft:CSC207H1", "uoft:CSC148H1"} <= froms  # two steps back
     assert client.get("/courses/uoft:CSC207H1").json()["unlocks"][0]["code"] == "CSC311H1"
     assert client.get("/courses/uoft:NOPE").status_code == 404
+
+
+def test_campuses(client):
+    schools = client.get("/filters").json()["schools"]
+    uoft = next(s for s in schools if s["id"] == "uoft")
+    assert uoft["name"] == "University of Toronto"
+    stg = next(c for c in uoft["campuses"] if c["id"] == "uoft-stg")
+    assert stg["name"] == "St. George" and stg["courses"] > 0
+
+    res = client.get("/courses/search", params={"q": "software design", "campus": "uoft-stg"}).json()
+    assert res["results"] and all(r["campus_id"] == "uoft-stg" for r in res["results"])
+    assert client.get("/courses/search", params={"q": "software design", "campus": "uoft-utm"}).json()["results"] == []
+
+    course = client.get("/courses/uoft:CSC207H1").json()
+    assert course["school_name"] == "University of Toronto" and course["campus_name"] == "St. George"
+
