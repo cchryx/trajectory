@@ -146,3 +146,11 @@ export async function searchCourses(
 export async function getCourse(id: string): Promise<CourseDetail> {
   return read(await fetch(`${API_URL}/courses/${encodeURIComponent(id)}`));
 }
+
+export async function getPlannerCourses(ids: string[]): Promise<{
+  courses: import("@/lib/plan").PlannerCourse[];
+  timetable_year: string | null;
+}> {
+  const params = new URLSearchParams({ ids: ids.join(",") });
+  return read(await fetch(`${API_URL}/planner/courses?${params}`));
+}
