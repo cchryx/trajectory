@@ -2,7 +2,12 @@
 
 Find the internships that fit you. Get the courses that launch you there.
 
+[![Tests](https://github.com/cchryx/trajectory/actions/workflows/tests.yml/badge.svg)](https://github.com/cchryx/trajectory/actions/workflows/tests.yml)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Upload your resume. Trajectory ranks open internships by fit and lists the skills you are missing for each one. Then it finds courses at your university that teach those skills, with their prerequisite chains.
+
+Live at [trajectory-web.onrender.com](https://trajectory-web.onrender.com). Open source: add your school, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Status
 
@@ -11,7 +16,8 @@ Upload your resume. Trajectory ranks open internships by fit and lists the skill
 | 1 | Job finder: resume upload, fit score, missing skills | Built |
 | 2 | Course finder: UofT courses, hybrid search, prerequisite graph | Built |
 | 2b | Course planner: plan each year, terms, section times, clash checks | Built |
-| 3 | Live on Render | To do (steps below) |
+| 3 | Live on Render | Live |
+| 4 | Open source: more schools and job sources | Open for contributions |
 
 ## How it works
 
@@ -90,7 +96,9 @@ The free plan sleeps after 15 minutes without visits. The first search after tha
 
 ## Run it on your computer
 
-You need Python 3.12 and Node 22.
+Contributors: follow [CONTRIBUTING.md](CONTRIBUTING.md). It uses a local Docker database and sample data, with no accounts needed.
+
+The steps below are for the live setup, with Supabase. You need Python 3.12 and Node 22.
 
 ```bash
 cp .env.example .env              # paste your Supabase connection string
@@ -128,6 +136,8 @@ TEST_DATABASE_URL=postgresql://... EMBEDDER=hash pytest
 
 ## Add a university, campus or faculty
 
+Full steps are in [CONTRIBUTING.md > Add your school](CONTRIBUTING.md#add-your-school).
+
 Courses are grouped as school > campus > faculty. Each faculty has its own calendar.
 
 | Faculty id | Campus | Calendar |
@@ -138,7 +148,7 @@ Courses are grouped as school > campus > faculty. Each faculty has its own calen
 | `uoft-utsc` | Scarborough (UTSC) | UTSC Academic Calendar |
 
 - Another UofT faculty on the same website system: add one `Calendar(...)` line to `CALENDARS` in `loaders/schools/uoft.py`.
-- Another school: write a module like `uoft.py` whose calendars have `school`, `campus`, `faculty` and `fetch()`, and add them to `FACULTIES` in `loaders/schools/__init__.py`.
+- Another school: copy `loaders/schools/_template.py`, fill it in, add its code format to `trajectory/codes.py`, and add the module to `SCHOOLS` in `loaders/schools/__init__.py`.
 
 Then run `python -m loaders.load_courses --faculty <id>`. No table or search changes are needed.
 
@@ -177,6 +187,14 @@ If the timetable is down for a long time, the planner still works. It shows prer
 | GET | `/courses/search?q=...&campus=uoft-stg` | Course search. Optional: `faculty`, `breadth`, `year`, `mode`. With no `q`, lists every course that matches the filters |
 | GET | `/planner/courses?ids=uoft:CSC148H1,uoft:CSC207H1` | Planner details: prerequisites, exclusions, terms and section times |
 | GET | `/courses/{id}` | One course, like `uoft:CSC207H1`, with its prerequisite graph and what it unlocks |
+
+## Contributing
+
+Pull requests are welcome. The most useful ones add a school, a job source or better skill tags. Start with [CONTRIBUTING.md](CONTRIBUTING.md). Please follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as in [SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE). You can use, change and share the code, as long as you keep the license notice.
 
 ## Credits
 

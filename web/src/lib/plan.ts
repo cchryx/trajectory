@@ -51,6 +51,15 @@ export function termKey(year: number, slot: Slot) {
   return `${year}${slot}`;
 }
 
+// A campus id starts with its school id: "uoft-stg" belongs to "uoft".
+export function schoolOf(campus: string) {
+  return campus.split("-")[0];
+}
+
+export function courseId(campus: string, code: string) {
+  return `${schoolOf(campus)}:${code}`;
+}
+
 export function emptyPlan(campus: string, start: number): Plan {
   return { v: 1, campus, start, years: 4, taken: [], terms: {} };
 }

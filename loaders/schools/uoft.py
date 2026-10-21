@@ -22,6 +22,8 @@ from urllib.robotparser import RobotFileParser
 import requests
 from bs4 import BeautifulSoup
 
+from trajectory.codes import pattern
+
 SCHOOL = {"id": "uoft", "name": "University of Toronto", "credit_unit": "FCE"}
 
 CAMPUSES = {
@@ -34,7 +36,7 @@ HEADERS = {"User-Agent": "TrajectoryBot/1.0 (student project; course search)"}
 DELAY = 1.0  # seconds between requests
 TIMEOUT = 30
 
-CODE = r"[A-Z]{3}[A-Z0-9]\d{2}[HY]\d"
+CODE = pattern("uoft")
 HEADING = re.compile(rf"^({CODE})\s*[-•–]\s*(.+)$")
 
 # Field class on the page -> key in the shared course shape.

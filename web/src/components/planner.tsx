@@ -10,6 +10,7 @@ import { getFilters, getPlannerCourses } from "@/lib/api";
 import {
   checkCourse,
   chosenSection,
+  courseId,
   decodePlan,
   emptyPlan,
   encodePlan,
@@ -84,11 +85,12 @@ export function Planner() {
     return [...new Set(all)];
   }, [plan]);
 
+  const campus = plan?.campus ?? "uoft-stg";
   useEffect(() => {
     const todo = codes.filter((c) => !courses.has(c));
     if (!todo.length) return;
     let live = true;
-    getPlannerCourses(todo.map((c) => `uoft:${c}`))
+    getPlannerCourses(todo.map((c) => courseId(campus, c)))
       .then((r) => {
         if (!live) return;
         setTimetableYear(r.timetable_year);
@@ -102,7 +104,7 @@ export function Planner() {
     return () => {
       live = false;
     };
-  }, [codes, courses]);
+  }, [codes, courses, campus]);
 
   // Pick a lecture section for newly added courses in the year with a real timetable.
   useEffect(() => {
@@ -385,6 +387,7 @@ function YearCard({
           <CourseRow
             key={p.code}
             planned={p}
+            campus={plan.campus}
             course={courses.get(p.code)}
             year={year}
             slot={slot}
@@ -461,6 +464,7 @@ function YearCard({
 
 function CourseRow({
   planned,
+  campus,
   course,
   year,
   slot,
@@ -470,6 +474,7 @@ function CourseRow({
   onSection,
 }: {
   planned: Planned;
+  campus: string;
   course: PlannerCourse | undefined;
   year: number;
   slot: Slot;
@@ -490,7 +495,7 @@ function CourseRow({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <Link
-            href={`/courses/${encodeURIComponent(`uoft:${planned.code}`)}`}
+            href={`/courses/${encodeURIComponent(courseId(campus, planned.code))}`}
             className="font-mono font-semibold text-accent underline"
           >
             {planned.code}

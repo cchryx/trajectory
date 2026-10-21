@@ -38,8 +38,8 @@ order by embedding <=> %(vec)s::vector
 limit %(limit)s
 """
 
-# "CSC 263", "csc263" or UTSC style "CSCA08".
-CODE_IN_QUERY = re.compile(r"\b([A-Za-z]{3})\s?([A-Za-z0-9]\d{2})\b", re.IGNORECASE)
+# A course code in the question: "CSC 263", "csc263", UTSC style "CSCA08", or "CS 135".
+CODE_IN_QUERY = re.compile(r"\b([A-Za-z]{2,4})\s?(\d{3}|[A-Za-z]\d{2})", re.IGNORECASE)
 
 CODE_SQL = f"""
 select id from courses

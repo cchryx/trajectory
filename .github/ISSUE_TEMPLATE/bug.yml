@@ -1,0 +1,19 @@
+name: Bug
+description: Something on the site or in the code is wrong.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What went wrong
+      description: What you did, what you expected, and what happened. Screenshots help.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Page or file
+      placeholder: /planner, or trajectory/skills.py
+  - type: markdown
+    attributes:
+      value: Please do not paste your resume or any private information.

@@ -1,0 +1,32 @@
+name: Add a school
+description: Ask for a new school's courses, or say you will add it.
+title: "Add <school name>"
+labels: ["new school"]
+body:
+  - type: input
+    id: school
+    attributes:
+      label: School
+      placeholder: University of Waterloo
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Where the course data is
+      description: An official API, open data, or the course calendar link.
+      placeholder: https://uwaterloo.ca/open-data/
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who will build it?
+      options:
+        - I will (see CONTRIBUTING.md > Add your school)
+        - I am asking someone else to
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Campuses, faculties, course code format (like "CS 135"), how prerequisites are written.

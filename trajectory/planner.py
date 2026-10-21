@@ -5,7 +5,7 @@ that term, time clashes, credit load). The plan itself lives in the page's link,
 not in the database.
 """
 
-from trajectory.prereqs import CODE
+from trajectory.codes import find_codes
 
 MAX_IDS = 120
 
@@ -17,7 +17,7 @@ def planner_courses(conn, ids):
         return {"courses": [], "timetable_year": None}
     with conn.cursor() as cur:
         cur.execute(
-            "select id, code, title, credits, year_level, campus_id, faculty_id, prereq_tree, "
+            "select id, school_id, code, title, credits, year_level, campus_id, faculty_id, prereq_tree, "
             "exclusions, breadth, url, terms_offered from courses where id = any(%s)",
             (ids,),
         )
@@ -43,7 +43,7 @@ def planner_courses(conn, ids):
             continue
         c["credits"] = float(c["credits"]) if c["credits"] is not None else None
         # Course codes named in the exclusions text: you cannot take both.
-        c["exclusion_codes"] = sorted(set(CODE.findall(c.pop("exclusions") or "")))
+        c["exclusion_codes"] = sorted(find_codes(c.pop("exclusions"), c.pop("school_id")))
         c.setdefault("offerings", {})
         out.append(c)
     return {"courses": out, "timetable_year": timetable_year}

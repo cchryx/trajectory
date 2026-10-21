@@ -29,23 +29,9 @@ jobs:
             - run: pip install -r requirements-dev.txt
             - name: Create tables
               run: |
-                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/001_jobs.sql
-                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/002_trajectory.sql
-                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/003_campuses.sql
-                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/004_faculties.sql
-                  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/005_timetable.sql
+                  for f in db/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
             - name: Load test data
-              run: |
-                  python -m loaders.load_postings
-                  python -m loaders.tag_skills
-                  python -m loaders.embed_postings
-                  for f in artsci eng utm utsc; do mkdir -p .cache/uoft/uoft-$f; done
-                  sed '/pager__item--last/d' tests/fixtures/uoft_csc_page.html > .cache/uoft/uoft-artsci/page-0.html
-                  cp tests/fixtures/uoft_eng_page.html .cache/uoft/uoft-eng/page-0.html
-                  cp tests/fixtures/uoft_utm_page.html .cache/uoft/uoft-utm/page-0.html
-                  cp tests/fixtures/uoft_utsc_page.html .cache/uoft/uoft-utsc/page-0.html
-                  python -m loaders.load_courses
-                  python -m loaders.load_timetable --division ARTSC,APSC --fixture tests/fixtures/timetable
+              run: python -m loaders.dev_seed
             - run: pytest -q
 
     web:

@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { type Course, searchCourses } from "@/lib/api";
+import { schoolOf } from "@/lib/plan";
 
 // Type a course code or a topic, then pick a course to add.
 export function CoursePicker({
@@ -27,7 +28,7 @@ export function CoursePicker({
     }
     let live = true;
     const timer = setTimeout(() => {
-      searchCourses({ q, school: "uoft", campus })
+      searchCourses({ q, school: schoolOf(campus), campus })
         .then((r) => {
           if (!live) return;
           setResults(r.results.slice(0, 8));

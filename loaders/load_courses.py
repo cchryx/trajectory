@@ -61,7 +61,7 @@ def course_text(course):
 
 
 def to_row(school_id, course):
-    tree = parse(course["prereq_text"])
+    tree = parse(course["prereq_text"], school_id)
     return {
         **course,
         "id": f"{school_id}:{course['code']}",
